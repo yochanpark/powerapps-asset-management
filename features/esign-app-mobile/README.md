@@ -121,8 +121,7 @@ window.dispatchEvent(new Event('resize'));
 ```
 
 게시 직후에는 플레이어가 **이전 버전을 물고 있다.** 노란 배너가 사라질 때까지
-URL로 새로 로드한 뒤 측정한다. 확장 도구의 `scroll`은 교차 출처 iframe 안으로
-들어가지 않으므로 스크롤 검증은 Win32 휠로 한다(`docs/automation-notes.md`).
+URL로 새로 로드한 뒤 측정한다.
 
 ## 남긴 것
 
