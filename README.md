@@ -5,8 +5,8 @@
 
 | | |
 |---|---|
-| 기간 | 2026.09 (1개월) |
-| 역할 | 기능 설계·구현, Dataverse 스키마·보안 역할 변경, Power Automate 흐름, 게시 검증 — 1인 |
+| 기간 | 현 직장 재직 중(2025.11 ~) 담당 · 검수 피드백 반영 2026.09 |
+| 역할 | 담당 개발자(단독) — 기능 설계·구현, Dataverse 스키마·보안 역할 변경, Power Automate 흐름, 게시 검증 |
 | 범위 | 기존 앱(화면 골격)에 기능 추가·개선. 공용 헤더 컴포넌트 라이브러리는 다른 팀 것이라 제외 |
 | 기술 | Power Apps 캔버스(Power Fx) · Dataverse · Power Automate · SharePoint · Teams 승인 · `pac` CLI |
 
