@@ -1,0 +1,19 @@
+# 컨트롤 YAML — 게시본(2026-09-29)에서 그대로 옮김. 붙여넣을 부모에 맞게 들여쓰기만 조정
+# 인수부서 콤보 (txtAoReceiveDept 자리 — 붙여넣은 뒤 txtAoReceiveDept 삭제)
+# Items는 반드시 |- 블록으로 둔다. {G: …}를 한 줄로 쓰면 YamlInvalidSyntax
+
+- cmbAoReceiveDept:
+    Control: ModernCombobox@1.1.2
+    Properties:
+      AccessibleLabel: ="인수부서"
+      BorderColor: =AppTheme.Color.BorderDefault
+      BorderThickness: =1
+      Fill: =AppTheme.Color.ContentBg
+      ItemDisplayText: =ThisItem.Value
+      Items: |-
+        =Ungroup(Table({G: Table({Value: "[공용]"})}, {G: ForAll(Sort('사업부 ', 이름) As B, {Value: B.이름})}), G)
+      LayoutMinHeight: =16
+      LayoutMinWidth: =16
+      SelectMultiple: =false
+      Visible: =CountRows(colAssetOutSelected) > 0
+      Width: =Parent.Width - 16

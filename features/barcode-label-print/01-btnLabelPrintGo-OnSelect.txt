@@ -1,0 +1,53 @@
+With(
+    {wHtml:
+        With(
+            {
+                wMmW: 50,
+                wMmH: 30,
+                wPat: Split("212222,222122,222221,121223,121322,131222,122213,122312,132212,221213,221312,231212,112232,122132,122231,113222,123122,123221,223211,221132,221231,213212,223112,312131,311222,321122,321221,312212,322112,322211,212123,212321,232121,111323,131123,131321,112313,132113,132311,211313,231113,231311,112133,112331,132131,113123,113321,133121,313121,211331,231131,213113,213311,213131,311123,311321,331121,312113,312311,332111,314111,221411,431111,111224,111422,121124,121421,141122,141221,112214,112412,122114,122411,142112,142211,241211,221114,413111,241112,134111,111242,121142,121241,114212,124112,124211,411212,421112,421211,212141,214121,412121,111143,111341,131141,114113,114311,411113,411311,113141,114131,311141,411131,211412,211214,211232", ","),
+                wSetB: Concat(Sequence(95, 32), Char(Value)),
+                wN: Max(1, Min(99, IfError(Value(txtLpCopies.Text), 1)))
+            },
+            "<!doctype html><html><head><meta charset='utf-8'><style>@page{size:" & wMmW & "mm " & wMmH & "mm;margin:0}body{margin:0;font-family:'Malgun Gothic',sans-serif}.l{width:" & wMmW & "mm;height:" & wMmH & "mm;box-sizing:border-box;padding:2mm;overflow:hidden;page-break-after:always}.l:last-child{page-break-after:auto}svg{display:block;width:100%;height:" & Round(wMmH * 0.47, 1) & "mm}.c{font-size:9pt;font-weight:bold;margin-top:1mm}.n{font-size:8pt;white-space:nowrap;overflow:hidden}</style></head><body>" &
+            Concat(
+                colBarcodeSelected As r,
+                With(
+                    {wCode: r.자산코드},
+                    With(
+                        {
+                            wWs: Index(wPat, 105).Value &
+                                Concat(Sequence(Len(wCode)) As i, Index(wPat, Find(Mid(wCode, i.Value, 1), wSetB)).Value) &
+                                Index(wPat, Mod(104 + Sum(ForAll(Sequence(Len(wCode)) As i, {v: i.Value * (Find(Mid(wCode, i.Value, 1), wSetB) - 1)}), v), 103) + 1).Value &
+                                "2331112"
+                        },
+                        With(
+                            {wD: ForAll(Sequence(Len(wWs)) As j, {k: j.Value, w: Value(Mid(wWs, j.Value, 1))})},
+                            With(
+                                {
+                                    wLabel: "<div class='l'><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 " & (Sum(wD, w) + 20) & " 1' preserveAspectRatio='none' shape-rendering='crispEdges'>" &
+                                        Concat(Filter(wD, Mod(k, 2) = 1) As b, "<rect x='" & (10 + Sum(Filter(wD, k < b.k), w)) & "' width='" & b.w & "' height='1'/>") &
+                                        "</svg><div class='c'>" & wCode & "</div><div class='n'>" &
+                                        Substitute(Substitute(Substitute(r.자산명, "&", "&amp;"), "<", "&lt;"), ">", "&gt;") &
+                                        "</div></div>"
+                                },
+                                Concat(Sequence(wN), wLabel)
+                            )
+                        )
+                    )
+                )
+            ) &
+            "</body></html>"
+        )
+    },
+    Set(
+        gblLpPdfUrl,
+        '자산관리-라벨PDF만들기'.Run(wHtml, "label_" & Text(Now(), "yyyymmdd_hhmmss") & "_" & Left(Text(GUID()), 6)).pdfurl
+    )
+);
+If(
+    IsBlank(gblLpPdfUrl),
+    Notify("라벨 PDF를 만들지 못했습니다.", NotificationType.Error),
+    ForAll(colBarcodeSelected As row, Patch(fnc_asset, row, {바코드출력여부: true}));
+    ClearCollect(colBarcodeSearch, Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료 && 자산상태 <> [@자산상태].손망실));
+    Launch(gblLpPdfUrl)
+)

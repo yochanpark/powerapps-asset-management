@@ -1,0 +1,284 @@
+// 자산파기 승인 scrDisposalApprove — 게시본(2026-09-30 장표 12 반영)에서 그대로 옮긴 수식
+
+// ── scrDisposalApprove.OnVisible  (전자결재 결과 반영 → 신청 목록. 장표 12: 잔존연수 = 4/1 회계연도, 영구 = 99 — 신청 화면과 같은 계산)
+// 전자결재 승인/반려 결과 반영
+Refresh(approval_master);
+Refresh(approval_route);
+ClearCollect(
+    colDaEsignPending,
+    Filter(
+        fnc_assetdisposal,
+        신청상태 = '신청상태 (fnc_assetdisposal)'.전자결재상신,
+        Not(IsBlank(전자결재문서번호))
+    )
+);
+ForAll(
+    colDaEsignPending As DP,
+    With(
+        {
+            wAll: CountRows(Filter(approval_route, 'approval master id' = DP.전자결재문서번호)),
+            wOk: CountRows(Filter(approval_route, 'approval master id' = DP.전자결재문서번호, 결재상태 = status.승인)),
+            wNo: CountRows(Filter(approval_route, 'approval master id' = DP.전자결재문서번호, 결재상태 = status.반려))
+        },
+        If(
+            wNo > 0,
+            Patch(fnc_assetdisposal, DP, {신청상태: '신청상태 (fnc_assetdisposal)'.신청}),
+            wAll > 0 && wAll = wOk,
+            Patch(
+                fnc_assetdisposal,
+                DP,
+                {
+                    신청상태: '신청상태 (fnc_assetdisposal)'.승인,
+                    승인자: LookUp(approval_route, 'approval master id' = DP.전자결재문서번호 && 결재상태 = status.승인).승인자,
+                    승인일: Today()
+                }
+            );
+            Patch(fnc_asset, DP.자산, {자산상태: [@자산상태].파기완료})
+        )
+    )
+);
+ClearCollect(
+    colDaRequests,
+    ForAll(
+        Filter(
+            fnc_assetdisposal,
+            신청상태 = '신청상태 (fnc_assetdisposal)'.신청
+        ) As R,
+        With(
+            {
+                wTotal: Switch(
+                    R.자산.감가상각기간,
+                    [@감가상각기간].'1년', 1,
+                    [@감가상각기간].'3년', 3,
+                    [@감가상각기간].'5년', 5,
+                    [@감가상각기간].'10년', 10,
+                    0
+                ),
+                wUsed: If(
+                    IsBlank(R.자산.자산취득일),
+                    0,
+                    (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(R.자산.자산취득일) - If(Month(R.자산.자산취득일) < 4, 1, 0))
+                )
+            },
+            With(
+                { wLeft: If(R.자산.감가상각기간 = [@감가상각기간].영구, 99, Max(0, wTotal - wUsed)) },
+                {
+                    신청: R,
+                    부서: R.신청부서,
+                    자산코드: R.자산.자산코드,
+                    자산명: R.자산.자산명,
+                    파기사유: R.파기사유,
+                    잔존연수: wLeft,
+                    잔존금액: If(
+                        wTotal <= 0,
+                        R.자산.취득가액,
+                        R.자산.취득가액 * wLeft / wTotal
+                    )
+                }
+            )
+        )
+    )
+);
+ClearCollect(
+    colDaDepts,
+    ForAll(
+        Distinct(colDaRequests, 부서) As D,
+        {
+            부서: D.Value,
+            전체: CountRows(Filter(colDaRequests, 부서 = D.Value)),
+            만료: CountRows(Filter(colDaRequests, 부서 = D.Value, 잔존연수 <= 0)),
+            기타: CountRows(Filter(colDaRequests, 부서 = D.Value, 잔존연수 > 0)),
+            잔여금액: Sum(Filter(colDaRequests, 부서 = D.Value), 잔존금액)
+        }
+    )
+);
+Set(gblDaSelectedDept, First(colDaDepts).부서);
+Clear(colDaSelected);
+UpdateContext({locDaPage: 1})
+
+// ── galDaDeptList.Items  (신청부서 목록, 페이지당 5)
+FirstN(LastN(colDaDepts, CountRows(colDaDepts) - Coalesce(locDaDeptPage, 1) * 5 + 5), 5)
+
+// ── galDaDeptList.Height  (행 36 × 5 + 4. 원래 100이라 2.8줄만 보였다)
+184
+
+// ── galDaAssetList.Items  (선택 부서의 신청 목록, 페이지당 5)
+With(
+    {wL: Filter(colDaRequests, If(IsBlank(txtDaSearch.Text), 부서 = gblDaSelectedDept, StartsWith(자산코드, txtDaSearch.Text) || StartsWith(자산명, txtDaSearch.Text) || StartsWith(부서, txtDaSearch.Text)))},
+    FirstN(LastN(wL, CountRows(wL) - Coalesce(locDaPage, 1) * 5 + 5), 5)
+)
+
+// ── 페이지 표시·다음 버튼은 원래 식 그대로 (전체 건수 ÷ 5 올림) — 바꾸지 않았다
+//    lblDaDeptPageInfo / icoDaDeptPageNext / lblDaPageInfo / icoDaPageNext
+
+//    icoDaDeptPageNext.DisplayMode
+If(
+    Coalesce(locDaDeptPage, 1) < Max(
+        1,
+        RoundUp(CountRows(colDaDepts) / 5, 0)
+    ),
+    DisplayMode.Edit,
+    DisplayMode.Disabled
+)
+
+// ── btnDaApproveExpired.OnSelect  (만료 건 파기완료 → 신청 목록 다시 계산. 9/30 오후: 잔존연수 식을 OnVisible과 같게 — 전에는 옛 RoundDown·영구 미처리라
+//    버튼을 누른 뒤 영구 자산이 0년 = 만료로 보여 전자결재 없이 파기완료될 수 있었다)
+ForAll(
+    Filter(galDaAssetList.AllItems, chkDaSelect.Checked, 잔존연수 <= 0) As G,
+    Patch(
+        fnc_assetdisposal,
+        G.신청,
+        {
+            신청상태: '신청상태 (fnc_assetdisposal)'.승인,
+            승인자: gblCurrentUser,
+            승인일: Today()
+        }
+    );
+    Patch(
+        fnc_asset,
+        G.신청.자산,
+        { 자산상태: [@자산상태].파기완료 }
+    )
+);
+Clear(colDaSelected);
+ClearCollect(
+    colDaRequests,
+    ForAll(
+        Filter(
+            fnc_assetdisposal,
+            신청상태 = '신청상태 (fnc_assetdisposal)'.신청
+        ) As R,
+        With(
+            {
+                wTotal: Switch(
+                    R.자산.감가상각기간,
+                    [@감가상각기간].'1년', 1,
+                    [@감가상각기간].'3년', 3,
+                    [@감가상각기간].'5년', 5,
+                    [@감가상각기간].'10년', 10,
+                    0
+                ),
+                wUsed: If(
+                    IsBlank(R.자산.자산취득일),
+                    0,
+                    (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(R.자산.자산취득일) - If(Month(R.자산.자산취득일) < 4, 1, 0))
+                )
+            },
+            With(
+                { wLeft: If(R.자산.감가상각기간 = [@감가상각기간].영구, 99, Max(0, wTotal - wUsed)) },
+                {
+                    신청: R,
+                    부서: R.신청부서,
+                    자산코드: R.자산.자산코드,
+                    자산명: R.자산.자산명,
+                    파기사유: R.파기사유,
+                    잔존연수: wLeft,
+                    잔존금액: If(
+                        wTotal <= 0,
+                        R.자산.취득가액,
+                        R.자산.취득가액 * wLeft / wTotal
+                    )
+                }
+            )
+        )
+    )
+);
+ClearCollect(
+    colDaDepts,
+    ForAll(
+        Distinct(colDaRequests, 부서) As D,
+        {
+            부서: D.Value,
+            전체: CountRows(Filter(colDaRequests, 부서 = D.Value)),
+            만료: CountRows(Filter(colDaRequests, 부서 = D.Value, 잔존연수 <= 0)),
+            기타: CountRows(Filter(colDaRequests, 부서 = D.Value, 잔존연수 > 0)),
+            잔여금액: Sum(Filter(colDaRequests, 부서 = D.Value), 잔존금액)
+        }
+    )
+);
+Set(
+    gblDaSelectedDept,
+    If(
+        CountRows(Filter(colDaDepts, 부서 = gblDaSelectedDept)) = 0,
+        First(colDaDepts).부서,
+        gblDaSelectedDept
+    )
+);
+UpdateContext({locDaPage: 1});
+Notify("감가상각 만료 자산의 파기를 승인했습니다", NotificationType.Success)
+
+// ── btnDaEsignRun.OnSelect  (미만료 건 전자결재 상신 → 신청 목록 다시 계산. 잔존연수 식은 위와 같다)
+ForAll(
+    Filter(galDaAssetList.AllItems, chkDaSelect.Checked, 잔존연수 > 0) As G,
+    Patch(
+        fnc_assetdisposal,
+        G.신청,
+        { 신청상태: '신청상태 (fnc_assetdisposal)'.전자결재상신 }
+    )
+);
+Clear(colDaSelected);
+ClearCollect(
+    colDaRequests,
+    ForAll(
+        Filter(
+            fnc_assetdisposal,
+            신청상태 = '신청상태 (fnc_assetdisposal)'.신청
+        ) As R,
+        With(
+            {
+                wTotal: Switch(
+                    R.자산.감가상각기간,
+                    [@감가상각기간].'1년', 1,
+                    [@감가상각기간].'3년', 3,
+                    [@감가상각기간].'5년', 5,
+                    [@감가상각기간].'10년', 10,
+                    0
+                ),
+                wUsed: If(
+                    IsBlank(R.자산.자산취득일),
+                    0,
+                    (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(R.자산.자산취득일) - If(Month(R.자산.자산취득일) < 4, 1, 0))
+                )
+            },
+            With(
+                { wLeft: If(R.자산.감가상각기간 = [@감가상각기간].영구, 99, Max(0, wTotal - wUsed)) },
+                {
+                    신청: R,
+                    부서: R.신청부서,
+                    자산코드: R.자산.자산코드,
+                    자산명: R.자산.자산명,
+                    파기사유: R.파기사유,
+                    잔존연수: wLeft,
+                    잔존금액: If(
+                        wTotal <= 0,
+                        R.자산.취득가액,
+                        R.자산.취득가액 * wLeft / wTotal
+                    )
+                }
+            )
+        )
+    )
+);
+ClearCollect(
+    colDaDepts,
+    ForAll(
+        Distinct(colDaRequests, 부서) As D,
+        {
+            부서: D.Value,
+            전체: CountRows(Filter(colDaRequests, 부서 = D.Value)),
+            만료: CountRows(Filter(colDaRequests, 부서 = D.Value, 잔존연수 <= 0)),
+            기타: CountRows(Filter(colDaRequests, 부서 = D.Value, 잔존연수 > 0)),
+            잔여금액: Sum(Filter(colDaRequests, 부서 = D.Value), 잔존금액)
+        }
+    )
+);
+Set(
+    gblDaSelectedDept,
+    If(
+        CountRows(Filter(colDaDepts, 부서 = gblDaSelectedDept)) = 0,
+        First(colDaDepts).부서,
+        gblDaSelectedDept
+    )
+);
+UpdateContext({locDaPage: 1});
+Notify("감가상각 미만료 자산의 파기승인을 전자결재로 상신했습니다", NotificationType.Success)

@@ -1,0 +1,278 @@
+// 자산재고검사 scrStockTakeDept — 게시본(2026-09-29)에서 그대로 옮긴 수식
+
+// ── btnSdUploadRun.OnSelect  (자산코드 열만 읽는다. 부서 목록 전체를 CSV 유무로 보유/미보유 upsert)
+Set(gblSdUploadMsg, "가져오는 중...");
+If(
+    IsBlank(varSdActiveStocktake),
+    Set(gblSdUploadMsg, "올해 실사 헤더가 없습니다. 총무 담당자에게 문의하세요."),
+    Not(EndsWith(First(attSdUploadFile.Attachments).Name, ".csv")),
+    Set(gblSdUploadMsg, "CSV 파일(.csv)을 선택하세요. 엑셀(.xlsx)은 지원하지 않습니다."),
+    Set(
+        gblSdCsvText,
+        '자산관리-재고실사CSV업로드'.Run(
+            {
+                name: First(attSdUploadFile.Attachments).Name,
+                contentBytes: First(attSdUploadFile.Attachments).Value
+            }
+        ).csvtext
+    );
+    ClearCollect(
+        colSdCsvLines,
+        Filter(
+            Split(Substitute(gblSdCsvText, Char(13), ""), Char(10)),
+            Not(IsBlank(Trim(Value)))
+        )
+    );
+    ClearCollect(
+        colSdCsvHead,
+        ForAll(
+            Sequence(CountRows(Split(First(colSdCsvLines).Value, ","))) As S,
+            {
+                idx: S.Value,
+                name: Trim(Substitute(Index(Split(First(colSdCsvLines).Value, ","), S.Value).Value, """", ""))
+            }
+        )
+    );
+    Set(gblSdColCode, LookUp(colSdCsvHead, name = "자산코드").idx);
+    If(
+        IsBlank(gblSdColCode),
+        Set(gblSdUploadMsg, "CSV에서 '자산코드' 열을 찾지 못했습니다. 첫 줄에 '자산코드' 제목이 있는지, 파일을 UTF-8로 저장했는지 확인하세요."),
+        ClearCollect(
+            colSdCsvCodes,
+            Filter(
+                ForAll(
+                    Sequence(CountRows(colSdCsvLines) - 1, 2) As R,
+                    {
+                        코드: Trim(Substitute(Index(Split(Index(colSdCsvLines, R.Value).Value, ","), gblSdColCode).Value, """", ""))
+                    }
+                ),
+                Not(IsBlank(코드))
+            )
+        );
+        ForAll(
+            colSdList As L,
+            With(
+                {
+                    wHold: Not(IsBlank(LookUp(colSdCsvCodes, 코드 = L.자산.자산코드))),
+                    wDet: LookUp(colSdDetail, 스캔자산코드 = L.자산.자산코드)
+                },
+                If(
+                    IsBlank(wDet),
+                    Patch(
+                        fnc_stocktake_detail,
+                        Defaults(fnc_stocktake_detail),
+                        {
+                            실사헤더: varSdActiveStocktake,
+                            자산: L.자산,
+                            스캔자산코드: L.자산.자산코드,
+                            보유여부: If(wHold, '보유여부 (fnc_stocktake_detail)'.보유, '보유여부 (fnc_stocktake_detail)'.미보유),
+                            미보유사유: If(Not(wHold) && L.자산.자산상태 = [@자산상태].출고, '미보유사유 (fnc_stocktake_detail)'.출고, Blank())
+                        }
+                    ),
+                    Patch(
+                        fnc_stocktake_detail,
+                        wDet,
+                        {
+                            보유여부: If(wHold, '보유여부 (fnc_stocktake_detail)'.보유, '보유여부 (fnc_stocktake_detail)'.미보유),
+                            미보유사유: If(
+                                wHold, Blank(),
+                                L.자산.자산상태 = [@자산상태].출고, '미보유사유 (fnc_stocktake_detail)'.출고,
+                                wDet.미보유사유
+                            )
+                        }
+                    )
+                )
+            )
+        );
+        ClearCollect(
+            colSdDetail,
+            Filter(
+                fnc_stocktake_detail,
+                실사헤더.부서 = gblCurrentUser.사업부.이름
+                    && 실사헤더.실사연도 = Text(Year(Today()))
+            )
+        );
+        ClearCollect(
+            colSdList,
+            ForAll(
+                Filter(
+                    fnc_asset,
+                    자산보유부서 = gblCurrentUser.사업부.이름,
+                    자산상태 <> [@자산상태].파기완료,
+                    자산상태 <> [@자산상태].손망실
+                ) As A,
+                {
+                    자산: A,
+                    보유여부: LookUp(colSdDetail, 자산.자산코드 = A.자산코드).보유여부,
+                    미보유사유: LookUp(colSdDetail, 자산.자산코드 = A.자산코드).미보유사유
+                }
+            )
+        );
+        Set(
+            gblSdUploadMsg,
+            "보유 " & CountRows(Filter(colSdList, 보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)) & "건 / 미보유 " & CountRows(Filter(colSdList, 보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)) & "건 / 부서 목록에 없는 코드 " & CountRows(Filter(colSdCsvCodes As C, IsBlank(LookUp(colSdList, 자산.자산코드 = C.코드)))) & "건"
+        );
+        Notify("CSV 반영 완료: " & gblSdUploadMsg, NotificationType.Success);
+        ResetForm(frmSdUpload)
+    )
+)
+
+// ── btnSdSubmit.OnSelect  (미확인 → 미보유 확정, 자산상태 출고면 사유 = 출고)
+ForAll(
+    Filter(colSdList, IsBlank(보유여부)) As U,
+    Patch(
+        fnc_stocktake_detail,
+        Defaults(fnc_stocktake_detail),
+        {
+            실사헤더: varSdActiveStocktake,
+            자산: U.자산,
+            스캔자산코드: U.자산.자산코드,
+            보유여부: '보유여부 (fnc_stocktake_detail)'.미보유,
+            미보유사유: If(U.자산.자산상태 = [@자산상태].출고, '미보유사유 (fnc_stocktake_detail)'.출고, Blank())
+        }
+    )
+);
+Patch(
+    fnc_stocktake,
+    varSdActiveStocktake,
+    {
+        제출상태: '제출상태 (fnc_stocktake)'.제출,
+        제출일: Today(),
+        제출자: gblCurrentUser,
+        부서보유건수: CountRows(colSdList)
+    }
+);
+Set(
+    varSdActiveStocktake,
+    LookUp(
+        fnc_stocktake,
+        부서 = gblCurrentUser.사업부.이름 && 실사연도 = Text(Year(Today()))
+    )
+);
+ClearCollect(
+    colSdDetail,
+    Filter(
+        fnc_stocktake_detail,
+        실사헤더.부서 = gblCurrentUser.사업부.이름
+            && 실사헤더.실사연도 = Text(Year(Today()))
+    )
+);
+ClearCollect(
+    colSdList,
+    ForAll(
+        Filter(
+            fnc_asset,
+            자산보유부서 = gblCurrentUser.사업부.이름,
+            자산상태 <> [@자산상태].파기완료,
+            자산상태 <> [@자산상태].손망실
+        ) As A,
+        {
+            자산: A,
+            보유여부: LookUp(colSdDetail, 자산.자산코드 = A.자산코드).보유여부,
+            미보유사유: LookUp(colSdDetail, 자산.자산코드 = A.자산코드).미보유사유
+        }
+    )
+);
+Notify("제출했습니다 — 확인되지 않은 자산은 미보유로 확정되었습니다", NotificationType.Success)
+
+// ── drpSdStatusFilter.Items  ("미확인" 제거)
+["전체", "보유", "미보유"]
+
+// ── galSdScanResult.Items  (lblSdListTitle.Text · lblSdPageInfo.Text · icoSdPageNext.DisplayMode도 같은 Filter — 미확인 분기만 뺐다)
+LastN(
+    FirstN(
+        Filter(
+            colSdList,
+            drpSdStatusFilter.Selected.Value = "전체"
+            || (drpSdStatusFilter.Selected.Value = "보유" && 보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)
+            || (drpSdStatusFilter.Selected.Value = "미보유" && 보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)
+        ),
+        Coalesce(locSdPage, 1) * 10
+    ),
+    10
+)
+
+// ── lblSdGalHold.Text  (미확인은 빈칸)
+If(
+    IsBlank(ThisItem.보유여부),
+    "",
+    ThisItem.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유,
+    "보유",
+    "미보유"
+)
+
+// ── lblSdKpiScannedValue.Text  ("확인 완료" = 보유만)
+CountRows(Filter(colSdList, 보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)) & " 건"
+
+// ── lblSdUploadGuide.Text
+"자산코드 열이 있는 CSV를 선택하세요. CSV에 있는 자산은 보유, 없는 자산은 미보유로 반영됩니다. 파일은 UTF-8로 저장해야 합니다."
+
+// ════ 추가 요청: 미보유사유 기타 + 상세 입력 ════
+
+// ── drpSdGalReason.Default  (원래 Value = Text(ThisItem.미보유사유) — 선택지 vs 텍스트 비교라 저장된 사유가 늘 빈칸으로 보였다)
+LookUp(Choices(fnc_stocktake_detail.미보유사유), Value = ThisItem.미보유사유)
+
+// ── drpSdGalReason.OnChange  (사유를 바꾸면 '미보유사유 상세'를 비운다)
+If(
+    IsBlank(
+        LookUp(
+            fnc_stocktake_detail,
+            실사헤더.부서 = varSdActiveStocktake.부서
+                && 실사헤더.실사연도 = varSdActiveStocktake.실사연도
+                && 스캔자산코드 = ThisItem.자산.자산코드
+        )
+    ),
+    Patch(
+        fnc_stocktake_detail,
+        Defaults(fnc_stocktake_detail),
+        {
+            실사헤더: varSdActiveStocktake,
+            자산: ThisItem.자산,
+            스캔자산코드: ThisItem.자산.자산코드,
+            보유여부: '보유여부 (fnc_stocktake_detail)'.미보유,
+            미보유사유: Self.Selected.Value,
+            '미보유사유 상세': Blank()
+        }
+    ),
+    Patch(
+        fnc_stocktake_detail,
+        LookUp(
+            fnc_stocktake_detail,
+            실사헤더.부서 = varSdActiveStocktake.부서
+                && 실사헤더.실사연도 = varSdActiveStocktake.실사연도
+                && 스캔자산코드 = ThisItem.자산.자산코드
+        ),
+        {
+            보유여부: '보유여부 (fnc_stocktake_detail)'.미보유,
+            미보유사유: Self.Selected.Value,
+            '미보유사유 상세': Blank()
+        }
+    )
+);
+ClearCollect(
+    colSdDetail,
+    Filter(
+        fnc_stocktake_detail,
+        실사헤더.부서 = gblCurrentUser.사업부.이름
+            && 실사헤더.실사연도 = Text(Year(Today()))
+    )
+);
+ClearCollect(
+    colSdList,
+    ForAll(
+        Filter(
+            fnc_asset,
+            자산보유부서 = gblCurrentUser.사업부.이름,
+            자산상태 <> [@자산상태].파기완료,
+            자산상태 <> [@자산상태].손망실
+        ) As A,
+        {
+            자산: A,
+            보유여부: LookUp(colSdDetail, 자산.자산코드 = A.자산코드).보유여부,
+            미보유사유: LookUp(colSdDetail, 자산.자산코드 = A.자산코드).미보유사유
+        }
+    )
+)
+
+// ── drpSdGalReason.Width  (기타면 줄여서 옆에 상세 칸)
+If(Text(Self.Selected.Value) = "기타", Parent.TemplateWidth * 0.08, Parent.TemplateWidth * 0.18)

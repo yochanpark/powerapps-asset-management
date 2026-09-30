@@ -1,0 +1,46 @@
+# 컨트롤 YAML — 게시본(2026-09-29)에서 그대로 옮김. 붙여넣을 부모에 맞게 들여쓰기만 조정
+# ① 보유부서 콤보 (자산보유부서_DataCard1 안, DataCardKey7 아래)
+- cmbOwnDept:
+    Control: ModernCombobox@1.1.2
+    Properties:
+      AccessibleLabel: =Parent.DisplayName
+      DefaultSelectedItems: |-
+        =If(IsBlank(Parent.Default), Table({Value: LookUp('사용자 ', '기본 메일 주소' = User().Email).사업부.이름}), Table({Value: Parent.Default}))
+      DisplayMode: =Parent.DisplayMode
+      ItemDisplayText: =ThisItem.Value
+      Items: |-
+        =Ungroup(Table({G: Table({Value: "[공용]"})}, {G: ForAll(Sort('사업부 ', 이름) As B, {Value: B.이름})}), G)
+      SelectMultiple: =false
+      Width: =Parent.Width - 48
+      X: =24
+      Y: =DataCardKey7.Y + DataCardKey7.Height + 4
+
+# ② 자산관리자 카드 내용 (자산관리자_DataCard1 안 — 카드 잠금 해제 후 붙여넣고 DataCardValue5/DataCardKey5 삭제)
+- DataCardKeyMgr:
+    Control: ModernText@1.0.0
+    Properties:
+      Align: ="left"
+      AutoHeight: =true
+      Font: ="'Segoe UI', 'Open Sans', sans-serif"
+      FontWeight: ="bold"
+      Height: =22
+      PaddingBottom: =0
+      PaddingLeft: =0
+      PaddingRight: =0
+      PaddingTop: =0
+      Size: =14
+      Text: =Parent.DisplayName
+      VerticalAlign: =VerticalAlign.Bottom
+      Width: =Parent.Width - 48
+      X: =24
+      Y: =10
+- DataCardValueMgr:
+    Control: ModernCombobox@1.1.2
+    Properties:
+      DefaultSelectedItems: =If(IsBlank(Parent.Default), FirstN(Choices([@fnc_asset].tsk_AssetManager), 0), [Parent.Default])
+      ItemDisplayText: =ThisItem.fullname
+      Items: =Choices([@fnc_asset].tsk_AssetManager)
+      SelectMultiple: =false
+      Width: =611
+      X: =24
+      Y: =40

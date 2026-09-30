@@ -1,0 +1,8 @@
+// 조회 버튼 OnSelect — 두 번째 날짜 선택기 값을 종료일에 담는다.
+
+UpdateContext({
+    locFilterDate: dteApprovalDate.SelectedDate,
+    locFilterDateTo: dteApprovalDate_1.SelectedDate,
+    locFilterTitle: txtApprovalTitleInput.Text,
+    locFilterNumber: txtApprovalNumberInput.Text
+});

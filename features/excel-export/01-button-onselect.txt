@@ -1,0 +1,36 @@
+// ─────────────────────────────────────────────────────────────
+// 골격 — {{...}} 네 곳만 바꾸면 된다
+// ─────────────────────────────────────────────────────────────
+// {{FOLDER}}  SharePoint DocLib 하위 폴더명. 슬래시 없이
+// {{PREFIX}}  파일명 앞머리
+// {{COL}}     내보낼 컬렉션
+// {{FIELDS}}  CSV 열 매핑
+
+=Set(gblExportFolder,"{{FOLDER}}");
+Set(gblExportFileName,"{{PREFIX}}_" & Text(Now(),"yyyymmdd_hhmmss") & ".csv");
+If(CountRows({{COL}}) = 0,
+    Notify("내보낼 데이터가 없습니다.", NotificationType.Warning),
+    '자산관리-목록CSV내보내기'.Run(
+        gblExportFileName,
+        JSON(ForAll({{COL}} As X, { {{FIELDS}} }), JSONFormat.Compact),
+        "/{{FOLDER}}"
+    );
+    Set(gblExportDone, true)
+)
+
+// gblExportFolder 에는 슬래시를 넣지 않는다. 화면 표시와 폴더 URL 조합에 쓰기 때문이다.
+// .Run() 의 3번째 인자에만 슬래시를 붙인다. 플로우가 "/DocLib" 뒤에 그대로 이어 붙인다.
+
+
+// ─────────────────────────────────────────────────────────────
+// 실제 구현 3종 (게시본 원문)
+// ─────────────────────────────────────────────────────────────
+
+// ── scrStockTakeAdmin / btnSaExcelExport ──
+=Set(gblExportFolder,"재고실사");Set(gblExportFileName,"재고실사_" & Text(Now(),"yyyymmdd_hhmmss") & ".csv");If(CountRows(colSaList) = 0, Notify("내보낼 데이터가 없습니다.", NotificationType.Warning), '자산관리-목록CSV내보내기'.Run(gblExportFileName, JSON(ForAll(colSaList As X, {자산코드: X.자산.자산코드, 자산명: X.자산.자산명, 보유부서: Text(X.자산.자산보유부서), 취득가액: X.자산.취득가액, 보유여부: Text(X.보유여부)}), JSONFormat.Compact), "/재고실사"); Set(gblExportDone, true))
+
+// ── scrDisposalRequest / btnDrExcelExport ──
+=Set(gblExportFolder,"자산파기");Set(gblExportFileName,"파기신청_" & Text(Now(),"yyyymmdd_hhmmss") & ".csv");If(CountRows(colDrList) = 0, Notify("내보낼 데이터가 없습니다.", NotificationType.Warning), '자산관리-목록CSV내보내기'.Run(gblExportFileName, JSON(ForAll(colDrList As X, {자산코드: X.자산.자산코드, 자산명: X.자산.자산명, 보유부서: Text(X.자산.자산보유부서), 취득가액: X.자산.취득가액, 잔존연수: X.잔존연수}), JSONFormat.Compact), "/자산파기"); Set(gblExportDone, true))
+
+// ── scrDisposalApprove / btnDaExcelExport ──
+=Set(gblExportFolder,"자산파기");Set(gblExportFileName,"파기승인_" & Text(Now(),"yyyymmdd_hhmmss") & ".csv");If(CountRows(colDaRequests) = 0, Notify("내보낼 데이터가 없습니다.", NotificationType.Warning), '자산관리-목록CSV내보내기'.Run(gblExportFileName, JSON(ForAll(colDaRequests As X, {부서: X.부서, 자산코드: X.자산코드, 자산명: X.자산명, 파기사유: Text(X.파기사유), 잔존연수: X.잔존연수, 잔존금액: X.잔존금액}), JSONFormat.Compact), "/자산파기"); Set(gblExportDone, true))

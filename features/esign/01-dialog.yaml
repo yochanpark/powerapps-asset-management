@@ -1,0 +1,73 @@
+- con{{PFX}}EsignDialog:
+    Control: GroupContainer@1.5.0
+    Variant: AutoLayout
+    Properties:
+      BorderColor: =AppTheme.Dialog.Info.Border
+      BorderThickness: =1
+      Fill: =AppTheme.Color.ContentBg
+      Height: =If(App.Width < 768, 300, 228)
+      LayoutAlignItems: =LayoutAlignItems.Center
+      LayoutDirection: =LayoutDirection.Vertical
+      LayoutGap: =12
+      PaddingBottom: =24
+      PaddingLeft: =24
+      PaddingRight: =24
+      PaddingTop: =24
+      Visible: =gbl{{PFX}}EsignOpen
+      Width: =Min(480, Parent.Width - 32)
+      X: =Max(16, (Parent.Width - 480) / 2)
+      Y: =Parent.Height / 2 - Self.Height / 2
+    Children:
+      - lbl{{PFX}}EsignTitle:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Size: =16
+            Text: ="전자결재 상신"
+            Width: =Parent.Width - 48
+      - lbl{{PFX}}EsignCount:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Text: ="미만료 자산 " & CountRows(Filter(gal{{PFX}}AssetList.AllItems, chk{{PFX}}Select.Checked, 잔존연수 > 0)) & "건을 상신합니다."
+            Width: =Parent.Width - 48
+      - cmb{{PFX}}EsignApprover:
+          Control: ModernCombobox@1.1.1
+          Properties:
+            ItemDisplayText: =ThisItem.'전체 이름'
+            Items: ='사용자 '
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            SelectMultiple: =false
+            Width: =Parent.Width - 48
+      - con{{PFX}}EsignBtns:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+          Children:
+            - btn{{PFX}}EsignSubmit:
+                Control: ModernButton@1.0.0
+                Properties:
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =false   # 02-submit-onselect.txt 의 수식을 붙여넣는다
+                  Text: ="상신"
+            - btn{{PFX}}EsignCancel:
+                Control: ModernButton@1.0.0
+                Properties:
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Set(gbl{{PFX}}EsignOpen, false)
+                  Text: ="취소"

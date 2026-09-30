@@ -1,0 +1,22 @@
+// 상신 확인 팝업의 [확인] OnSelect — Patch 레코드에 기안일자를 더한다.
+// 명시 레코드가 frmElectronicApprovalContent.Updates 보다 나중이라 폼 값을 덮어쓴다.
+
+UpdateContext({locShowSubmitConfirm: false});
+
+Set(
+    varApprovalDetail,
+    Patch(
+        approval_master,
+        If(locIsNewMode, Defaults(approval_master), varApprovalDetail),
+        frmElectronicApprovalContent.Updates,
+        {
+            임시저장유무: false,
+            현재결재상태: "결재대기",
+            참조자: Concat(Filter(colApprovalLine, Role = "참조"), Name & ", "),
+            기안일자: Now()                                   // 추가 — 상신 시각으로 확정
+        }
+    )
+);
+UpdateContext({locIsNewMode: false});
+
+// ... 이하 approval_route 생성 / Notify / Navigate 그대로

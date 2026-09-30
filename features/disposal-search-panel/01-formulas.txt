@@ -1,0 +1,161 @@
+// 자산파기 신청 scrDisposalRequest — 게시본(2026-09-30 장표 10 반영)에서 그대로 옮긴 수식
+
+// ── btnSearch_Dr.OnSelect  (colDrList 생성. 선택 조직 + 하위 팀 범위(장표 10), 파기완료/손망실/파기신청 제외 + 검색조건. 잔존연수 = 4/1 회계연도, 영구 = 99)
+Set(gblDrSelKind, Coalesce(drpDrDept.Selected.종류, "전체"));
+ClearCollect(colDrScope, Filter(colDrBU, 이름 = drpDrDept.Selected.Value || 상위 = drpDrDept.Selected.Value));
+ClearCollect(
+    colDrList,
+    Filter(
+        ForAll(
+            Filter(
+                fnc_asset,
+                (gblDrSelKind = "전체" || 자산보유부서 in colDrScope.이름) &&
+                자산상태 <> [@자산상태].파기완료 && 자산상태 <> [@자산상태].손망실 && 자산상태 <> [@자산상태].파기신청 &&
+                (IsBlank(drpStatus_Dr.Selected.Value) || 자산상태 = drpStatus_Dr.Selected.Value) &&
+                (IsBlank(txtSearchName_Dr.Text) || txtSearchName_Dr.Text in 자산명) &&
+                (IsBlank(txtSearchCode_Dr.Text) || txtSearchCode_Dr.Text in 자산코드) &&
+                (IsBlank(dteAcqFrom_Dr.SelectedDate) || 자산취득일 >= dteAcqFrom_Dr.SelectedDate) &&
+                (IsBlank(dteAcqTo_Dr.SelectedDate) || 자산취득일 <= dteAcqTo_Dr.SelectedDate) &&
+                (IsBlank(txtAmtFrom_Dr.Text) || 취득가액 >= Value(txtAmtFrom_Dr.Text)) &&
+                (IsBlank(txtAmtTo_Dr.Text) || 취득가액 <= Value(txtAmtTo_Dr.Text)) &&
+                (IsBlank(drpCategory_Dr.Selected.Value) || 분류 = drpCategory_Dr.Selected.Value) &&
+                (IsBlank(drpDepre_Dr.Selected.Value) || 감가상각기간 = drpDepre_Dr.Selected.Value) &&
+                (IsBlank(drpLocation_Dr.Selected) || 보관위치.위치명 = drpLocation_Dr.Selected.cr5f6_fnc_locationname) &&
+                (IsBlank(txtSearchRegistrant_Dr.Text) || txtSearchRegistrant_Dr.Text in 등록담당자.'전체 이름') &&
+                (IsBlank(txtSearchRequester_Dr.Text) || txtSearchRequester_Dr.Text in 자산등록요청자.'전체 이름')
+            ) As A,
+            With(
+                {
+                    wTotal: Switch(
+                        A.감가상각기간,
+                        [@감가상각기간].'1년', 1,
+                        [@감가상각기간].'3년', 3,
+                        [@감가상각기간].'5년', 5,
+                        [@감가상각기간].'10년', 10,
+                        0
+                    ),
+                    wPassed: If(
+                        IsBlank(A.자산취득일),
+                        0,
+                        (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(A.자산취득일) - If(Month(A.자산취득일) < 4, 1, 0))
+                    )
+                },
+                {
+                    자산: A,
+                    잔존연수: If(A.감가상각기간 = [@감가상각기간].영구, 99, Max(0, wTotal - wPassed)),
+                    잔존금액: If(wTotal <= 0, Coalesce(A.취득가액, 0), Coalesce(A.취득가액, 0) * Max(0, wTotal - wPassed) / wTotal)
+                }
+            )
+        ),
+        (IsBlank(txtRemainFrom_Dr.Text) || 잔존금액 >= Value(txtRemainFrom_Dr.Text)) &&
+        (IsBlank(txtRemainTo_Dr.Text) || 잔존금액 <= Value(txtRemainTo_Dr.Text))
+    )
+);
+Clear(colDrSelected);
+UpdateContext({locDrPage: 1})
+
+// ── scrDisposalRequest.OnVisible  (장표 10: 사업부 위치로 권한 수준 → 부서 드롭다운 목록 colDrDeptOpt. 통계 화면과 같은 식)
+ClearCollect(colDrBU, ForAll('사업부 ' As B, {이름: B.이름, 상위: B.'상위 사업'.이름}));
+With(
+    {
+        wMy: gblCurrentUser.사업부.이름,
+        wMyParent: LookUp(colDrBU, 이름 = gblCurrentUser.사업부.이름).상위
+    },
+    Set(
+        gblDrLevel,
+        If(
+            IsBlank(wMyParent), "전사",
+            IsBlank(LookUp(colDrBU, 이름 = wMyParent).상위), "부서",
+            "팀"
+        )
+    );
+    ClearCollect(
+        colDrDeptOpt,
+        Switch(
+            gblDrLevel,
+            "전사",
+            Ungroup(
+                Table(
+                    {G: Table({Value: "전체", 표시: "전체", 종류: "전체"})},
+                    {G: Ungroup(
+                        ForAll(
+                            Sort(Filter(colDrBU, 상위 = wMy), 이름) As D,
+                            {G: Ungroup(
+                                Table(
+                                    {H: Table({Value: D.이름, 표시: D.이름, 종류: "부서"})},
+                                    {H: ForAll(Sort(Filter(colDrBU, 상위 = D.이름), 이름) As T, {Value: T.이름, 표시: "  └ " & T.이름, 종류: "팀"})}
+                                ),
+                                H
+                            )}
+                        ),
+                        G
+                    )}
+                ),
+                G
+            ),
+            "부서",
+            Ungroup(
+                Table(
+                    {G: Table({Value: wMy, 표시: wMy, 종류: "부서"})},
+                    {G: ForAll(Sort(Filter(colDrBU, 상위 = wMy), 이름) As T, {Value: T.이름, 표시: "  └ " & T.이름, 종류: "팀"})}
+                ),
+                G
+            ),
+            Table({Value: wMy, 표시: wMy, 종류: "팀"})
+        )
+    )
+);
+Reset(drpDrDept);
+Select(btnSearch_Dr)
+
+// ── btnResetSearch_Dr.OnSelect  (초기화 = Reset 후 재검색)
+Reset(txtSearchName_Dr); Reset(txtSearchCode_Dr);
+Reset(dteAcqFrom_Dr); Reset(dteAcqTo_Dr);
+Reset(txtAmtFrom_Dr); Reset(txtAmtTo_Dr);
+Reset(drpCategory_Dr); Reset(drpStatus_Dr); Reset(drpDepre_Dr); Reset(drpLocation_Dr);
+Reset(drpDrDept);
+Reset(txtRemainFrom_Dr); Reset(txtRemainTo_Dr);
+Reset(txtSearchRegistrant_Dr); Reset(txtSearchRequester_Dr);
+Select(btnSearch_Dr)
+
+// ── btnDrSubmit.OnSelect  (장표 10: 신청부서 = 자산의 보유부서. 제출 후 목록 재생성도 Select(btnSearch_Dr))
+ForAll(
+    Filter(galDrAssetList.AllItems, chkDrSelect.Checked) As G,
+    Patch(
+        fnc_assetdisposal,
+        Defaults(fnc_assetdisposal),
+        {
+            신청번호: "DSP-" & Text(Today(), "yyyymmdd") & "-" & G.자산.자산코드,
+            자산: G.자산,
+            신청자: gblCurrentUser,
+            신청부서: G.자산.자산보유부서,
+            신청상태: '신청상태 (fnc_assetdisposal)'.신청,
+            파기사유: G.drpDrGalReason.Selected.Value,
+            파기방법: G.drpDrGalMethod.Selected.Value
+        }
+    );
+    Patch(
+        fnc_asset,
+        G.자산,
+        { 자산상태: [@자산상태].파기신청 }
+    )
+);
+Select(btnSearch_Dr);
+Notify("파기 신청을 제출했습니다 — 총무팀 승인을 기다립니다", NotificationType.Success)
+
+// ── lblDrGalDepr.Text  (영구면 "영구")
+If(ThisItem.자산.감가상각기간 = [@감가상각기간].영구, "영구", ThisItem.잔존연수 & "년")
+
+// ── btnDrExcelExport.OnSelect  (잔존연수 영구면 "영구")
+Set(gblExportFolder,"자산파기");
+Set(gblExportFileName,"파기신청_" & Text(Now(),"yyyymmdd_hhmmss") & ".csv");
+If(CountRows(colDrList) = 0, 
+Notify("내보낼 데이터가 없습니다.", NotificationType.Warning),
+ '자산관리-목록CSV내보내기'.Run(gblExportFileName,
+  JSON(ForAll(colDrList As X, {자산코드: X.자산.자산코드, 자산명: X.자산.자산명, 보유부서: Text(X.자산.자산보유부서), 취득가액: X.자산.취득가액,
+  잔존연수:If(X.자산.감가상각기간 = [@감가상각기간].영구, "영구", Text(X.잔존연수))}),
+  JSONFormat.Compact), "/자산파기");
+  Set(gblExportDone, true));
+
+// ── conDrPageList.LayoutOverflowY  (검색부 226px 때문에 하단 버튼이 밀려서 스크롤)
+LayoutOverflow.Scroll

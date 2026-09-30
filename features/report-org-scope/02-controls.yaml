@@ -1,0 +1,14 @@
+# 컨트롤 YAML — 게시본(2026-09-30)에서 그대로 옮김. 붙여넣을 부모에 맞게 들여쓰기만 조정
+# txtRpDept 자리 (붙여넣은 뒤 txtRpDept 삭제)
+
+- drpRpDept:
+    Control: ModernDropdown@1.0.3
+    Properties:
+      Default: =First(colRpDeptOpt)
+      DisplayMode: =If(CountRows(colRpDeptOpt) > 1, DisplayMode.Edit, DisplayMode.Disabled)
+      Height: =34
+      ItemDisplayText: =ThisItem.표시
+      Items: =colRpDeptOpt
+      LayoutMinHeight: =16
+      LayoutMinWidth: =70
+      Width: =180

@@ -1,0 +1,12 @@
+- btn{{PFX}}CsvUpload:
+    Control: ModernButton@1.0.0
+    Properties:
+      Height: =32
+      LayoutMinHeight: =16
+      LayoutMinWidth: =16
+      OnSelect: |-
+        =Set(gbl{{PFX}}UploadMsg, "");
+        Set(gbl{{PFX}}UploadShow, true)
+      Size: =11
+      Text: ="CSV 일괄등록"
+      Width: =120

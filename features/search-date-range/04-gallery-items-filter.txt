@@ -1,0 +1,11 @@
+// 갤러리 Items 의 Filter 조건 — 한 줄이던 일치 비교를 두 줄 범위 비교로 바꾼다.
+
+// 바꾸기 전
+&& (IsBlank(locFilterDate) || IsBlank(기안일자) || DateValue(Text(기안일자, "yyyy-mm-dd")) = locFilterDate)
+
+// 바꾼 뒤
+&& (IsBlank(locFilterDate)   || IsBlank(기안일자) || DateValue(Text(기안일자, "yyyy-mm-dd")) >= locFilterDate)
+&& (IsBlank(locFilterDateTo) || IsBlank(기안일자) || DateValue(Text(기안일자, "yyyy-mm-dd")) <= locFilterDateTo)
+
+// IsBlank 가드가 두 줄에 각각 있어야 한쪽만 고른 검색(시작일만 / 종료일만)이 동작한다.
+// DateValue(Text(...)) 로 날짜만 비교하므로 값에 시간이 들어 있어도 영향이 없다.

@@ -1,0 +1,126 @@
+// 자산등록 조회/수정 scrAsset — 게시본(2026-09-29 다운로드, 9/28 게시분)에서 그대로 옮긴 수식
+
+// ── scrAsset.OnVisible  (locSortCol·locSortAsc 추가)
+If(IsEmpty(colAssetSearch),
+    ClearCollect(colAssetSearch,
+        Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료 && 자산상태 <> [@자산상태].손망실)
+    )
+);
+UpdateContext({locPage: 1, locPageSize: 10, locSortCol: "", locSortAsc: true})
+
+// ── galAsset.Items  (정렬 → FirstN(LastN(...)) 페이징. 원래 LastN(FirstN(...))라 마지막 페이지가 앞 페이지 행과 겹쳤다)
+FirstN(LastN(Switch(locSortCol, "code", Sort(colAssetSearch, 자산코드, If(locSortAsc, SortOrder.Ascending, SortOrder.Descending)), "name", Sort(colAssetSearch, 자산명, If(locSortAsc, SortOrder.Ascending, SortOrder.Descending)), "category", Sort(colAssetSearch, Text(분류), If(locSortAsc, SortOrder.Ascending, SortOrder.Descending)), "date", Sort(colAssetSearch, 자산취득일, If(locSortAsc, SortOrder.Ascending, SortOrder.Descending)), "status", Sort(colAssetSearch, Text(자산상태), If(locSortAsc, SortOrder.Ascending, SortOrder.Descending)), colAssetSearch), CountRows(colAssetSearch) - locPage * locPageSize + locPageSize), locPageSize)
+
+// ── 헤더 정렬 — lblHdrCode / Name / Category / Date / Status 5개 같은 모양, 키만 code/name/category/date/status
+//    FillPortions 3 : 5 : 2 : 2 : 2 (lblHdrEdit는 Width 50 고정)
+
+//    lblHdrCode.OnSelect
+If(locSortCol = "code", UpdateContext({locSortAsc: Not(locSortAsc)}), UpdateContext({locSortCol: "code", locSortAsc: true})); UpdateContext({locPage: 1})
+
+//    lblHdrCode.Text
+"자산코드" & If(locSortCol = "code", If(locSortAsc, " ▲", " ▼"), "")
+
+// ── 행 라벨 — 헤더를 따라간다 (반응형 열 폭)
+//    lblGalCode.X = lblHdrCode.X,  lblGalCode.Width = lblHdrCode.Width
+//    lblGalName / lblGalCategory / lblGalDate / lblGalStatus 도 같은 식으로 짝 헤더 참조
+//    icoGalEdit.X = Parent.TemplateWidth - 38 그대로 (수정 헤더가 고정폭이라 맞는다)
+
+// ── icoPagePrev.OnSelect
+UpdateContext({locPage: Max(1, locPage - 1)})
+
+// ── icoPageNext.OnSelect
+UpdateContext({locPage: Min(Max(1, RoundUp(CountRows(colAssetSearch) / locPageSize, 0)), locPage + 1)})
+
+// ── btnSearch.OnSelect  (잔존감가 이상/이하 중 하나라도 숫자가 아니면 Notify — "영구" 차단. 나머지는 원래 검색)
+If(
+    Not(IsBlank(txtRemainFrom.Text) || IsMatch(txtRemainFrom.Text, "^[0-9,]+$")) ||
+    Not(IsBlank(txtRemainTo.Text) || IsMatch(txtRemainTo.Text, "^[0-9,]+$")),
+    Notify("잔존감가는 숫자만 입력하세요. (예: 1000000)", NotificationType.Error),
+    ClearCollect(colAssetSearch,
+        Filter(
+            Filter(fnc_asset,
+                (IsBlank(txtSearchName.Text) || txtSearchName.Text in 자산명) &&
+                (IsBlank(txtSearchCode.Text) || txtSearchCode.Text in 자산코드) &&
+                (IsBlank(dteAcqFrom.SelectedDate) || 자산취득일 >= dteAcqFrom.SelectedDate) &&
+                (IsBlank(dteAcqTo.SelectedDate) || 자산취득일 <= dteAcqTo.SelectedDate) &&
+                (IsBlank(txtAmtFrom.Text) || 취득가액 >= Value(txtAmtFrom.Text)) &&
+                (IsBlank(txtAmtTo.Text) || 취득가액 <= Value(txtAmtTo.Text)) &&
+                (IsBlank(drpCategory.Selected.Value) || 분류 = drpCategory.Selected.Value) &&
+                (If(
+                    IsBlank(drpStatus.Selected.Value),
+                    자산상태 <> [@자산상태].파기완료 && 자산상태 <> [@자산상태].손망실,
+                    자산상태 = drpStatus.Selected.Value
+                )) &&
+                (IsBlank(drpDepre.Selected.Value) || 감가상각기간 = drpDepre.Selected.Value) &&
+                (IsBlank(drpLocation.Selected) || 보관위치.위치명 = drpLocation.Selected.cr5f6_fnc_locationname) &&
+                (IsBlank(txtSearchDept.Text) || txtSearchDept.Text in 자산보유부서) &&
+                (IsBlank(txtSearchRegistrant.Text) || txtSearchRegistrant.Text in 등록담당자.'전체 이름') &&
+                (IsBlank(txtSearchRequester.Text) || txtSearchRequester.Text in 자산등록요청자.'전체 이름')
+            ),
+            With(
+                {
+                    wTotal: Switch(
+                        감가상각기간,
+                        [@감가상각기간].'1년', 1,
+                        [@감가상각기간].'3년', 3,
+                        [@감가상각기간].'5년', 5,
+                        [@감가상각기간].'10년', 10,
+                        0
+                    )
+                },
+                (IsBlank(txtRemainFrom.Text) ||
+                    If(
+                        wTotal <= 0,
+                        Coalesce(취득가액, 0),
+                        Coalesce(취득가액, 0) * Max(
+                            0,
+                            wTotal - If(
+                                IsBlank(자산취득일),
+                                0,
+                                RoundDown(DateDiff(자산취득일, Today(), TimeUnit.Months) / 12, 0)
+                            )
+                        ) / wTotal
+                    )
+                    >= Value(txtRemainFrom.Text)) &&
+                (IsBlank(txtRemainTo.Text) ||
+                    If(
+                        wTotal <= 0,
+                        Coalesce(취득가액, 0),
+                        Coalesce(취득가액, 0) * Max(
+                            0,
+                            wTotal - If(
+                                IsBlank(자산취득일),
+                                0,
+                                RoundDown(DateDiff(자산취득일, Today(), TimeUnit.Months) / 12, 0)
+                            )
+                        ) / wTotal
+                    )
+                    <= Value(txtRemainTo.Text))
+            )
+        )
+    );
+    UpdateContext({locPage: 1})
+)
+
+// ── btnAuTemplateDownload.OnSelect  (CSV 업로드 팝업 버튼 줄 — 양식 CSV는 SharePoint에 고정 파일로 둔다)
+Download("https://{TENANT}.sharepoint.com/sites/{SITE_NAME}/DocLib/자산등록_양식.csv")
+
+// ════ 같은 페이징 버그 수정 — scrAssetOut · scrBarcodePrint (정렬·헤더는 없음) ════
+
+// ── galAoAsset.Items
+FirstN(LastN(colAssetOutSearch, CountRows(colAssetOutSearch) - locPage * locPageSize + locPageSize), locPageSize)
+
+// ── galAoPageNum.Items  (btnAoPageNum은 02 YAML의 btnPageNum과 같은 모양)
+With({wTotal: Max(1, RoundUp(CountRows(colAssetOutSearch) / locPageSize, 0))}, Sequence(Min(10, wTotal), Max(1, Min(locPage - 4, wTotal - 9))))
+
+// ── icoPageNext_2.OnSelect
+UpdateContext({locPage: Min(Max(1, RoundUp(CountRows(colAssetOutSearch) / locPageSize, 0)), locPage + 1)})
+
+// ── galBcpAsset.Items
+FirstN(LastN(colBarcodeSearch, CountRows(colBarcodeSearch) - locPage * locPageSize + locPageSize), locPageSize)
+
+// ── galBcpPageNum.Items
+With({wTotal: Max(1, RoundUp(CountRows(colBarcodeSearch) / locPageSize, 0))}, Sequence(Min(10, wTotal), Max(1, Min(locPage - 4, wTotal - 9))))
+
+// ── icoPageNext_1.OnSelect
+UpdateContext({locPage: Min(Max(1, RoundUp(CountRows(colBarcodeSearch) / locPageSize, 0)), locPage + 1)})

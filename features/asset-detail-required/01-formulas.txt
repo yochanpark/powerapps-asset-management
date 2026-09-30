@@ -1,0 +1,29 @@
+// 신규자산등록 scrAssetDetail — 게시본(2026-09-29)에서 그대로 옮긴 수식
+
+// ── scrAssetDetail.OnVisible
+If(gblAssetMode = "New", ResetForm(frmAsset))
+
+// ── Required = true (데이터카드 5개)
+//    자산명_DataCard1 / 분류_DataCard1 / 취득가액_DataCard1 / 감가상각기간_DataCard1 / 자산상태_DataCard1
+//    자산취득일_DataCard1은 Required 속성이 없어 저장 버튼에서 막는다 ↓
+
+// ── btnDetailSave.DisplayMode
+If(frmAsset.Valid && Not(IsBlank(DataCardValue13.SelectedDate)), DisplayMode.Edit, DisplayMode.Disabled)
+
+// ── DataCardValue8.DefaultSelectedItems  (감가상각기간: 분류가 소모품이면 자동)
+If(Parent.DisplayMode <> DisplayMode.View && Text(DataCardValue4.Selected.Value) = "소모품", Filter(Choices([@fnc_asset].tsk_depreciationterm), Text(Value) = "소모품"), [Parent.Default])
+
+// ── 자산보유부서_DataCard1.Update
+cmbOwnDept.Selected.Value
+//    (원래 텍스트 입력 DataCardValue7은 Visible = false)
+
+// ── 등록담당자 DataCardValue9
+//    Items
+LookUp('팀 ', '팀 이름' = "{REGISTRAR_TEAM}").'사용자 '
+//    ItemDisplayText   ('전체 이름'으로 쓰면 Studio가 '구/군/시'로 바꿔 놓는다)
+ThisItem.fullname
+
+// ── 자산관리자_DataCard1.Update
+DataCardValueMgr.Selected
+//    ErrorMessage4.Y = DataCardValueMgr.Y + DataCardValueMgr.Height
+//    StarVisible4.Y  = DataCardKeyMgr.Y

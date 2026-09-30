@@ -1,0 +1,143 @@
+Set(gblAuUploadMsg, "가져오는 중...");
+If(
+    Not(EndsWith(First(attAuUploadFile.Attachments).Name, ".csv")),
+    Set(gblAuUploadMsg, "CSV 파일(.csv)을 선택하세요. 엑셀(.xlsx)은 지원하지 않습니다."),
+    Set(
+        gblAuCsvText,
+        '자산관리-재고실사CSV업로드'.Run(
+            {
+                name: First(attAuUploadFile.Attachments).Name,
+                contentBytes: First(attAuUploadFile.Attachments).Value
+            }
+        ).csvtext
+    );
+    ClearCollect(
+        colAuLines,
+        Filter(
+            Split(Substitute(gblAuCsvText, Char(13), ""), Char(10)),
+            Not(IsBlank(Trim(Value)))
+        )
+    );
+    ClearCollect(
+        colAuHead,
+        ForAll(
+            Sequence(CountRows(Split(First(colAuLines).Value, ","))) As S,
+            {
+                idx: S.Value,
+                name: Trim(Substitute(Index(Split(First(colAuLines).Value, ","), S.Value).Value, """", ""))
+            }
+        )
+    );
+    Set(gblAuColName, LookUp(colAuHead, name = "자산명").idx);
+    Set(gblAuColCat, LookUp(colAuHead, name = "분류").idx);
+    Set(gblAuColDate, LookUp(colAuHead, name = "취득일").idx);
+    Set(gblAuColAmt, LookUp(colAuHead, name = "취득가액").idx);
+    Set(gblAuColTerm, LookUp(colAuHead, name = "감가상각기간").idx);
+    Set(gblAuColDept, LookUp(colAuHead, name = "자산보유부서").idx);
+    ClearCollect(colAuCat, Choices([@fnc_asset].cr5f6_category));
+    ClearCollect(colAuTerm, Choices([@fnc_asset].tsk_depreciationterm));
+    If(
+        IsBlank(gblAuColName) || IsBlank(gblAuColCat) || IsBlank(gblAuColDate) || IsBlank(gblAuColAmt) || IsBlank(gblAuColTerm),
+        Set(gblAuUploadMsg, "필수 열을 찾지 못했습니다. 자산명·분류·취득일·취득가액·감가상각기간 열이 있는지, 파일을 UTF-8로 저장했는지 확인하세요."),
+        ClearCollect(
+            colAuRows,
+            ForAll(
+                Sequence(CountRows(colAuLines) - 1, 2) As R,
+                With(
+                    {cells: Split(Index(colAuLines, R.Value).Value, ",")},
+                    {
+                        줄: R.Value,
+                        자산명: Trim(Substitute(Index(cells, gblAuColName).Value, """", "")),
+                        분류T: Trim(Substitute(Index(cells, gblAuColCat).Value, """", "")),
+                        취득일T: Trim(Substitute(Index(cells, gblAuColDate).Value, """", "")),
+                        취득가액T: Trim(Substitute(Index(cells, gblAuColAmt).Value, """", "")),
+                        감가T: Trim(Substitute(Index(cells, gblAuColTerm).Value, """", "")),
+                        부서T: If(IsBlank(gblAuColDept), "", Trim(Substitute(Index(cells, gblAuColDept).Value, """", "")))
+                    }
+                )
+            )
+        );
+        ClearCollect(
+            colAuChecked,
+            ForAll(
+                colAuRows As C,
+                {
+                    줄: C.줄,
+                    자산명: C.자산명,
+                    분류T: C.분류T,
+                    감가T: C.감가T,
+                    부서T: C.부서T,
+                    날짜: IfError(DateAdd(DateValue(C.취득일T), 12, TimeUnit.Hours), Blank()),
+                    금액: IfError(Value(C.취득가액T), Blank()),
+                    분류OK: Not(IsBlank(LookUp(colAuCat As X, Text(X.Value) = C.분류T))),
+                    감가OK: Not(IsBlank(LookUp(colAuTerm As Y, Text(Y.Value) = C.감가T)))
+                }
+            )
+        );
+        ClearCollect(
+            colAuValid,
+            Filter(
+                colAuChecked,
+                Not(IsBlank(자산명)) && 분류OK && 감가OK && Not(IsBlank(날짜)) && Not(IsBlank(금액))
+            )
+        );
+        ClearCollect(
+            colAuBad,
+            Filter(
+                colAuChecked,
+                IsBlank(자산명) || Not(분류OK) || Not(감가OK) || IsBlank(날짜) || IsBlank(금액)
+            )
+        );
+        ForAll(
+            colAuValid As V,
+            Patch(
+                fnc_asset,
+                Defaults(fnc_asset),
+                {
+                    자산명: V.자산명,
+                    분류: LookUp(colAuCat As X, Text(X.Value) = V.분류T).Value,
+                    자산취득일: V.날짜,
+                    취득가액: V.금액,
+                    감가상각기간: LookUp(colAuTerm As Y, Text(Y.Value) = V.감가T).Value,
+                    자산보유부서: If(IsBlank(V.부서T), gblCurrentUser.사업부.이름, V.부서T),
+                    자산상태: [@자산상태].사용,
+                    등록담당자: gblCurrentUser
+                }
+            )
+        );
+        ClearCollect(
+            colAssetSearch,
+            Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료, 자산상태 <> [@자산상태].손망실)
+        );
+        Set(
+            gblAuUploadMsg,
+            "등록 " & CountRows(colAuValid) & "건 / 실패 " & CountRows(colAuBad) & "건" &
+            If(
+                CountRows(colAuBad) > 0,
+                Char(10) &
+                Concat(
+                    colAuBad As B,
+                    B.줄 & "행: " &
+                    Concat(
+                        Filter(
+                            [
+                                If(IsBlank(B.자산명), "자산명 없음", ""),
+                                If(Not(B.분류OK), "분류 '" & B.분류T & "' 확인", ""),
+                                If(Not(B.감가OK), "감가상각기간 '" & B.감가T & "' 확인", ""),
+                                If(IsBlank(B.날짜), "취득일 확인", ""),
+                                If(IsBlank(B.금액), "취득가액 확인", "")
+                            ],
+                            Not(IsBlank(Value))
+                        ),
+                        Value,
+                        ", "
+                    ),
+                    Char(10)
+                ),
+                ""
+            )
+        );
+        Notify("자산 등록 완료: " & CountRows(colAuValid) & "건", NotificationType.Success);
+        ResetForm(frmAuUpload)
+    )
+)

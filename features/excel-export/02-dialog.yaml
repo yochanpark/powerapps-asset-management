@@ -1,0 +1,81 @@
+- con{{PFX}}ExportDialog:
+    Control: GroupContainer@1.5.0
+    Variant: AutoLayout
+    Properties:
+      BorderColor: =AppTheme.Dialog.Info.Border
+      BorderThickness: =1
+      Fill: =AppTheme.Color.ContentBg
+      Height: =228
+      LayoutAlignItems: =LayoutAlignItems.Center
+      LayoutDirection: =LayoutDirection.Vertical
+      LayoutGap: =12
+      PaddingBottom: =24
+      PaddingLeft: =24
+      PaddingRight: =24
+      PaddingTop: =24
+      Visible: =gblExportDone
+      Width: =480
+      X: =Parent.Width / 2 - 240
+      Y: =Parent.Height / 2 - Self.Height / 2
+    Children:
+      - lbl{{PFX}}ExportTitle:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Size: =16
+            Text: ="내보내기 완료"
+            Width: =Parent.Width - 48
+      - lbl{{PFX}}ExportFile:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Text: =gblExportFileName
+            Width: =Parent.Width - 48
+      - lbl{{PFX}}ExportPath:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Text: ="SharePoint 자산관리 > " & gblExportFolder
+            Width: =Parent.Width - 48
+      - con{{PFX}}ExportBtns:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =8
+            LayoutJustifyContent: =LayoutJustifyContent.Center
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+          Children:
+            - btn{{PFX}}ExportFolder:
+                Control: ModernButton@1.0.0
+                Properties:
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Launch("https://{TENANT}.sharepoint.com/sites/{SITE_NAME}/DocLib/" & gblExportFolder)
+                  Text: ="폴더 열기"
+            - btn{{PFX}}ExportOpen:
+                Control: ModernButton@1.0.0
+                Properties:
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Launch("https://{TENANT}.sharepoint.com/sites/{SITE_NAME}/DocLib/" & gblExportFolder & "/" & gblExportFileName & "?web=1")
+                  Text: ="파일 열기"
+            - btn{{PFX}}ExportClose:
+                Control: ModernButton@1.0.0
+                Properties:
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Set(gblExportDone, false)
+                  Text: ="닫기"

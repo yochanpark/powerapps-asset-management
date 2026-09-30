@@ -1,0 +1,17 @@
+# 컨트롤 YAML — 게시본(2026-09-29)에서 그대로 옮김. 붙여넣을 부모에 맞게 들여쓰기만 조정
+# galSdScanResult 템플릿 안, drpSdGalReason 옆 (기타일 때만 보인다)
+
+- txtSdGalReasonDetail:
+    Control: ModernTextInput@1.1.2
+    Properties:
+      Default: =LookUp(colSdDetail, 스캔자산코드 = ThisItem.자산.자산코드).'미보유사유 상세'
+      DisplayMode: =drpSdGalReason.DisplayMode
+      Height: =Parent.TemplateHeight - 20
+      OnChange: |-
+        =Patch(fnc_stocktake_detail, LookUp(fnc_stocktake_detail, 실사헤더.부서 = varSdActiveStocktake.부서 && 실사헤더.실사연도 = varSdActiveStocktake.실사연도 && 스캔자산코드 = ThisItem.자산.자산코드), {'미보유사유 상세': Self.Text}); ClearCollect(colSdDetail, Filter(fnc_stocktake_detail, 실사헤더.부서 = gblCurrentUser.사업부.이름 && 실사헤더.실사연도 = Text(Year(Today()))))
+      Placeholder: ="상세 사유"
+      TriggerOutput: =TriggerOutput.FocusOut
+      Visible: =Text(drpSdGalReason.Selected.Value) = "기타"
+      Width: =Parent.TemplateWidth * 0.1 - 4
+      X: =Parent.TemplateWidth * 0.76 + 4
+      Y: =10

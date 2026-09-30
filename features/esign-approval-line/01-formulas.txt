@@ -1,0 +1,114 @@
+전자결재 결재라인 표시 + 기안자 부서 — 수식 원문 (2026-09-22)
+DemoElectronicApprovalLeave / scrElectronicApproval
+
+AppTheme.*   = 앱 테마 컴포넌트 참조. 자기 앱 이름 또는 RGBA(...) 리터럴로 바꾼다.
+'사용자 '     = Dataverse systemuser 의 이 환경 표시명. 뒤에 공백이 하나 있다.
+수식 바에 붙여넣을 때 앞의 = 는 빼고 넣는다.
+
+
+========================================================================
+① txtDrafterValue.Text        기안자 + 부서 한 줄
+========================================================================
+
+With(
+    {u: If(locIsNewMode,
+           LookUp('사용자 ', '기본 메일 주소' = User().Email),
+           LookUp('사용자 ', 사용자 = varApprovalDetail.'만든 사람'.사용자))},
+    Coalesce(u.'전체 이름', User().FullName)
+    & If(IsBlank(u.사업부.이름), "", " / " & u.사업부.이름)
+)
+
+  두 분기를 모두 '사용자 ' 레코드로 맞추는 것이 요령이다.
+  varApprovalDetail.'만든 사람'.사업부.이름 은 2단계 홉이라 기대지 않는다.
+
+
+========================================================================
+② 사이드바 스테퍼  galElectronicApprovalReviewers
+========================================================================
+
+-- BadgeStatus1.Content        (원래: Left(ThisItem.Status, 1)  → 전부 P / N)
+Text(ThisItem.Step)
+
+-- BadgeStatus1.BasePaletteColor
+If(ThisItem.Current, AppTheme.Color.HeaderBg, AppTheme.Color.TextDisabled)
+
+-- ReviewTypeText1.Y           26          (원래 65)
+-- ReviewTypeText1.Height      20          (원래 Parent.TemplateHeight / 2 - 5)
+-- ReviewTypeText1.Size        11          (원래 14)
+-- ReviewTypeText1.Color       AppTheme.Color.TextSecondary
+
+-- ReviewerNameText1.Wrap      false       (원래 true — 긴 이름이 아랫줄과 겹쳤다)
+
+-- galElectronicApprovalReviewers.TemplateSize
+If(scrElectronicApproval.Size = ScreenSize.Small, 70, 80)
+
+
+========================================================================
+③ 결재라인 지정 팝업  galElectronicApprovalApprovalLine
+========================================================================
+
+-- galElectronicApprovalApprovalLine.TemplateSize    64      (원래 104)
+
+-- Subtitle2  →  순번 배지
+   Text            ThisItem.Sequence
+   X / Y           16 / 14
+   Width / Height  28 / 28
+   Color           AppTheme.Color.TextOnColor
+   Align           Align.Center
+   VerticalAlign   VerticalAlign.Middle
+   FontWeight      FontWeight.Semibold
+   PaddingLeft     0
+   Fill:
+
+Switch(ThisItem.Role,
+    "결재", AppTheme.Color.HeaderBg,
+    "합의", AppTheme.Color.StatusInfo,
+    "확인", AppTheme.Color.StatusReview,
+    AppTheme.Color.TextDisabled)
+
+-- Title2  →  이름 · 역할
+   Text            ThisItem.Name & "  ·  " & ThisItem.Role
+   X / Y           56 / 10
+   Width           Parent.TemplateWidth - 122
+   FontWeight      FontWeight.Semibold
+
+-- Title2_1 (Title2 를 Ctrl+C / Ctrl+V 로 복제)  →  부서
+   Text            ThisItem.DeptName
+   Y               34
+   Size            11
+   FontWeight      FontWeight.Normal
+   Color           AppTheme.Color.TextSecondary
+
+   복제하면 X · Width · PaddingLeft · 글꼴이 따라와 정렬이 저절로 맞는다.
+
+
+========================================================================
+④ scrElectronicApproval.OnVisible   route 복원 순번 (기존 버그)
+========================================================================
+
+상신된 기안을 열면 배지가 전부 1로 나온다. 순번을 안 읽고 있었다.
+
+  before:   Sequence: 1,
+  after :   Sequence: 결재순번,
+
+해당 블록:
+
+ForAll(
+    Filter(approval_route, 'approval master id' = varApprovalDetail.'doc no'),
+    {
+        Sequence: 결재순번,
+        ID: 승인자.사용자,
+        Name: 승인자.'전체 이름',
+        DeptName: 승인자.사업부.이름,
+        Role: "결재"
+    }
+)
+
+OnVisible 에 "Sequence: 1," 이 두 군데 있다. 신규 모드의 고정 결재자 쪽은 1이 맞다.
+수식 바 > 찾기 및 바꾸기 > 정규식(.*) 을 켜고 뒤쪽만 바꾼다.
+
+  찾기  :  Sequence: 1,\n(\s+)ID: 승인자
+  바꾸기:  Sequence: 결재순번,\n$1ID: 승인자
+
+1/1 로 뜨는 것을 확인하고 단일 바꾸기 버튼. $1 로 들여쓰기가 보존된다.
+패턴에 \n 을 넣어야 여러 줄 검색이 켜진다.

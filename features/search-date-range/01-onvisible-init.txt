@@ -1,0 +1,9 @@
+// 화면 OnVisible 의 UpdateContext 에 종료일 변수를 하나 더 넣는다.
+// 시작일은 기존 변수를 그대로 쓰고 To 만 추가하면 손댈 곳이 줄어든다.
+
+UpdateContext({
+    locFilterDate: Blank(),          // 시작일 (기존)
+    locFilterDateTo: Blank(),        // 종료일 (추가)
+    locFilterTitle: "",
+    locFilterNumber: ""
+});

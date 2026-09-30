@@ -1,0 +1,324 @@
+- conAuUploadDialog:
+    Control: GroupContainer@1.5.0
+    Variant: AutoLayout
+    Properties:
+      BorderColor: =AppTheme.Dialog.Info.Border
+      BorderThickness: =1
+      Fill: =AppTheme.Color.ContentBg
+      Height: |
+        =540
+      LayoutAlignItems: =LayoutAlignItems.Center
+      LayoutDirection: =LayoutDirection.Vertical
+      LayoutGap: =12
+      PaddingBottom: =24
+      PaddingLeft: =24
+      PaddingRight: =24
+      PaddingTop: =24
+      Visible: =gblAuUploadShow
+      Width: =560
+      X: =(Parent.Width - 560) / 2
+      Y: =(Parent.Height - 540) / 2
+    Children:
+      - lblAuUploadTitle:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            Color: =AppTheme.Color.TextPrimary
+            FontWeight: =FontWeight.Bold
+            Height: =28
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =16
+            Text: ="자산 CSV 일괄등록"
+            Width: =Parent.Width - 48
+      - lblAuUploadGuide:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            Color: =AppTheme.Color.TextSecondary
+            Height: =44
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =11
+            Text: ="자산명·분류·취득일·취득가액·감가상각기간·자산보유부서 열이 필요합니다. 자산코드는 자동 채번됩니다. 파일은 UTF-8 CSV로 저장해야 합니다."
+            Width: =Parent.Width - 48
+      - frmAuUpload:
+          Control: Form@2.4.4
+          Variant: Modern
+          Layout: Vertical
+          Properties:
+            DataSource: =CSV업로드
+            DefaultMode: =FormMode.New
+            Height: |
+              =180
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            NumberOfColumns: =1
+            Width: =Parent.Width - 48
+          Children:
+            - cardAuUploadAttach:
+                Control: TypedDataCard@1.0.7
+                Variant: ModernAttachmentsEdit
+                IsLocked: true
+                Properties:
+                  DataField: ="{Attachments}"
+                  Default: =ThisItem.'첨부 파일'
+                  DisplayName: =DataSourceInfo([@CSV업로드],DataSourceInfo.DisplayName,'{Attachments}')
+                  Required: =false
+                  Update: =attAuUploadFile.Attachments
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+                Children:
+                  - lblAuUploadAttachKey:
+                      Control: ModernText@1.0.0
+                      MetadataKey: FieldName
+                      Properties:
+                        FontWeight: =FontWeight.Semibold
+                        Height: =22
+                        PaddingBottom: =0
+                        PaddingTop: =0
+                        Size: =14
+                        Text: ="CSV 파일 선택"
+                        Width: =Parent.Width - 48
+                        Wrap: =false
+                        X: =24
+                        Y: =10
+                  - attAuUploadFile:
+                      Control: Attachments@2.3.0
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =If(IsBlank(Parent.Error), 0, 1)
+                        DisplayMode: =Parent.DisplayMode
+                        Fill: =RGBA(245,245,245, 1)
+                        Items: =Parent.Default
+                        PaddingBottom: =5
+                        PaddingLeft: =If(Self.DisplayMode = DisplayMode.Edit, 5, 0)
+                        PaddingRight: =5
+                        PaddingTop: =5
+                        Tooltip: =Parent.DisplayName
+                        Width: =Parent.Width - 48
+                        X: =24
+                        Y: =lblAuUploadAttachKey.Y + lblAuUploadAttachKey.Height + 4
+                  - lblAuUploadAttachErr:
+                      Control: ModernText@1.0.0
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        Height: =30
+                        Size: =14
+                        Text: =Parent.Error
+                        Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =Parent.Width - 48
+                        X: =24
+                        Y: =attAuUploadFile.Y + attAuUploadFile.Height
+                  - lblAuUploadAttachStar:
+                      Control: ModernText@1.0.0
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        Color: =Color.Red
+                        Height: =lblAuUploadAttachKey.Height
+                        PaddingBottom: =0
+                        PaddingTop: =0
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =30
+                        Y: =lblAuUploadAttachKey.Y
+      - lblAuUploadMsg:
+          Control: ModernText@1.0.0
+          Properties:
+            Color: =AppTheme.Color.TextSecondary
+            Height: =130
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =11
+            Text: =gblAuUploadMsg
+            Width: =Parent.Width - 48
+      - conAuUploadBtnRow:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            Height: =40
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =12
+            LayoutJustifyContent: =LayoutJustifyContent.Center
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Width: =Parent.Width - 48
+          Children:
+            - btnAuUploadRun:
+                Control: ModernButton@1.0.0
+                Properties:
+                  DisplayMode: |-
+                    =If(
+                        CountRows(attAuUploadFile.Attachments) = 1,
+                        DisplayMode.Edit,
+                        DisplayMode.Disabled
+                    )
+                  Height: =36
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: |
+                    =Set(gblAuUploadMsg, "가져오는 중...");
+                    If(
+                        Not(EndsWith(First(attAuUploadFile.Attachments).Name, ".csv")),
+                        Set(gblAuUploadMsg, "CSV 파일(.csv)을 선택하세요. 엑셀(.xlsx)은 지원하지 않습니다."),
+                        Set(
+                            gblAuCsvText,
+                            '자산관리-재고실사CSV업로드'.Run(
+                                {
+                                    name: First(attAuUploadFile.Attachments).Name,
+                                    contentBytes: First(attAuUploadFile.Attachments).Value
+                                }
+                            ).csvtext
+                        );
+                        ClearCollect(
+                            colAuLines,
+                            Filter(
+                                Split(Substitute(gblAuCsvText, Char(13), ""), Char(10)),
+                                Not(IsBlank(Trim(Value)))
+                            )
+                        );
+                        ClearCollect(
+                            colAuHead,
+                            ForAll(
+                                Sequence(CountRows(Split(First(colAuLines).Value, ","))) As S,
+                                {
+                                    idx: S.Value,
+                                    name: Trim(Substitute(Index(Split(First(colAuLines).Value, ","), S.Value).Value, """", ""))
+                                }
+                            )
+                        );
+                        Set(gblAuColName, LookUp(colAuHead, name = "자산명").idx);
+                        Set(gblAuColCat, LookUp(colAuHead, name = "분류").idx);
+                        Set(gblAuColDate, LookUp(colAuHead, name = "취득일").idx);
+                        Set(gblAuColAmt, LookUp(colAuHead, name = "취득가액").idx);
+                        Set(gblAuColTerm, LookUp(colAuHead, name = "감가상각기간").idx);
+                        Set(gblAuColDept, LookUp(colAuHead, name = "자산보유부서").idx);
+                        ClearCollect(colAuCat, Choices([@fnc_asset].cr5f6_category));
+                        ClearCollect(colAuTerm, Choices([@fnc_asset].tsk_depreciationterm));
+                        If(
+                            IsBlank(gblAuColName) || IsBlank(gblAuColCat) || IsBlank(gblAuColDate) || IsBlank(gblAuColAmt) || IsBlank(gblAuColTerm),
+                            Set(gblAuUploadMsg, "필수 열을 찾지 못했습니다. 자산명·분류·취득일·취득가액·감가상각기간 열이 있는지, 파일을 UTF-8로 저장했는지 확인하세요."),
+                            ClearCollect(
+                                colAuRows,
+                                ForAll(
+                                    Sequence(CountRows(colAuLines) - 1, 2) As R,
+                                    With(
+                                        {cells: Split(Index(colAuLines, R.Value).Value, ",")},
+                                        {
+                                            줄: R.Value,
+                                            자산명: Trim(Substitute(Index(cells, gblAuColName).Value, """", "")),
+                                            분류T: Trim(Substitute(Index(cells, gblAuColCat).Value, """", "")),
+                                            취득일T: Trim(Substitute(Index(cells, gblAuColDate).Value, """", "")),
+                                            취득가액T: Trim(Substitute(Index(cells, gblAuColAmt).Value, """", "")),
+                                            감가T: Trim(Substitute(Index(cells, gblAuColTerm).Value, """", "")),
+                                            부서T: If(IsBlank(gblAuColDept), "", Trim(Substitute(Index(cells, gblAuColDept).Value, """", "")))
+                                        }
+                                    )
+                                )
+                            );
+                            ClearCollect(
+                                colAuChecked,
+                                ForAll(
+                                    colAuRows As C,
+                                    {
+                                        줄: C.줄,
+                                        자산명: C.자산명,
+                                        분류T: C.분류T,
+                                        감가T: C.감가T,
+                                        부서T: C.부서T,
+                                        날짜: IfError(DateAdd(DateValue(C.취득일T), 12, TimeUnit.Hours), Blank()),
+                                        금액: IfError(Value(C.취득가액T), Blank()),
+                                        분류OK: Not(IsBlank(LookUp(colAuCat As X, Text(X.Value) = C.분류T))),
+                                        감가OK: Not(IsBlank(LookUp(colAuTerm As Y, Text(Y.Value) = C.감가T)))
+                                    }
+                                )
+                            );
+                            ClearCollect(
+                                colAuValid,
+                                Filter(
+                                    colAuChecked,
+                                    Not(IsBlank(자산명)) && 분류OK && 감가OK && Not(IsBlank(날짜)) && Not(IsBlank(금액))
+                                )
+                            );
+                            ClearCollect(
+                                colAuBad,
+                                Filter(
+                                    colAuChecked,
+                                    IsBlank(자산명) || Not(분류OK) || Not(감가OK) || IsBlank(날짜) || IsBlank(금액)
+                                )
+                            );
+                            ForAll(
+                                colAuValid As V,
+                                Patch(
+                                    fnc_asset,
+                                    Defaults(fnc_asset),
+                                    {
+                                        자산명: V.자산명,
+                                        분류: LookUp(colAuCat As X, Text(X.Value) = V.분류T).Value,
+                                        자산취득일: V.날짜,
+                                        취득가액: V.금액,
+                                        감가상각기간: LookUp(colAuTerm As Y, Text(Y.Value) = V.감가T).Value,
+                                        자산보유부서: If(IsBlank(V.부서T), gblCurrentUser.사업부.이름, V.부서T),
+                                        자산상태: [@자산상태].사용,
+                                        등록담당자: gblCurrentUser
+                                    }
+                                )
+                            );
+                            ClearCollect(
+                                colAssetSearch,
+                                Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료, 자산상태 <> [@자산상태].손망실)
+                            );
+                            Set(
+                                gblAuUploadMsg,
+                                "등록 " & CountRows(colAuValid) & "건 / 실패 " & CountRows(colAuBad) & "건" &
+                                If(
+                                    CountRows(colAuBad) > 0,
+                                    Char(10) &
+                                    Concat(
+                                        colAuBad As B,
+                                        B.줄 & "행: " &
+                                        Concat(
+                                            Filter(
+                                                [
+                                                    If(IsBlank(B.자산명), "자산명 없음", ""),
+                                                    If(Not(B.분류OK), "분류 '" & B.분류T & "' 확인", ""),
+                                                    If(Not(B.감가OK), "감가상각기간 '" & B.감가T & "' 확인", ""),
+                                                    If(IsBlank(B.날짜), "취득일 확인", ""),
+                                                    If(IsBlank(B.금액), "취득가액 확인", "")
+                                                ],
+                                                Not(IsBlank(Value))
+                                            ),
+                                            Value,
+                                            ", "
+                                        ),
+                                        Char(10)
+                                    ),
+                                    ""
+                                )
+                            );
+                            Notify("자산 등록 완료: " & CountRows(colAuValid) & "건", NotificationType.Success);
+                            ResetForm(frmAuUpload)
+                        )
+                    )
+                  Text: ="등록"
+                  Width: =140
+            - btnAuUploadClose:
+                Control: ModernButton@1.0.0
+                Properties:
+                  Height: =36
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: =Set(gblAuUploadShow, false)
+                  Size: =12
+                  Text: ="닫기"
+                  Width: =120

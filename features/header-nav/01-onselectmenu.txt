@@ -1,0 +1,14 @@
+Set(gblActiveHeaderMenu, "");
+Set(gblCurrentPageCode, menuCode);
+Switch(
+    menuCode,
+    "asset_main", Navigate(scrHome, ScreenTransition.None),
+    "asset_registration", Navigate(scrAsset, ScreenTransition.None),
+    "print_barcode", Navigate(scrBarcodePrint, ScreenTransition.None),
+    "asset_release", Navigate(scrAssetOut, ScreenTransition.None),
+    "asset_inventory_check", Navigate(scrStockTakeDept, ScreenTransition.None),
+    "corporate_asset_management", Navigate(scrStockTakeAdmin, ScreenTransition.None),
+    "asset_disposal", Navigate(scrDisposalRequest, ScreenTransition.None),
+    "asset_disposal_approval", Navigate(scrDisposalApprove, ScreenTransition.None),
+    "statistical_report", Navigate(scrReport, ScreenTransition.None)
+)

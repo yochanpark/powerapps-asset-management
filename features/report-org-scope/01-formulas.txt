@@ -1,0 +1,185 @@
+// 통계 scrReport — 게시본(2026-09-30)에서 그대로 옮긴 수식
+
+// ── scrReport.OnVisible  (사업부 위치로 권한 수준 판정 → 드롭다운 목록 colRpDeptOpt)
+ClearCollect(colRpBU, ForAll('사업부 ' As B, {이름: B.이름, 상위: B.'상위 사업'.이름}));
+With(
+    {
+        wMy: gblCurrentUser.사업부.이름,
+        wMyParent: LookUp(colRpBU, 이름 = gblCurrentUser.사업부.이름).상위
+    },
+    Set(
+        gblRpLevel,
+        If(
+            IsBlank(wMyParent), "전사",
+            IsBlank(LookUp(colRpBU, 이름 = wMyParent).상위), "부서",
+            "팀"
+        )
+    );
+    ClearCollect(
+        colRpDeptOpt,
+        Switch(
+            gblRpLevel,
+            "전사",
+            Ungroup(
+                Table(
+                    {G: Table({Value: "전체", 표시: "전체", 종류: "전체"})},
+                    {G: Ungroup(
+                        ForAll(
+                            Sort(Filter(colRpBU, 상위 = wMy), 이름) As D,
+                            {G: Ungroup(
+                                Table(
+                                    {H: Table({Value: D.이름, 표시: D.이름, 종류: "부서"})},
+                                    {H: ForAll(Sort(Filter(colRpBU, 상위 = D.이름), 이름) As T, {Value: T.이름, 표시: "  └ " & T.이름, 종류: "팀"})}
+                                ),
+                                H
+                            )}
+                        ),
+                        G
+                    )}
+                ),
+                G
+            ),
+            "부서",
+            Ungroup(
+                Table(
+                    {G: Table({Value: wMy, 표시: wMy, 종류: "부서"})},
+                    {G: ForAll(Sort(Filter(colRpBU, 상위 = wMy), 이름) As T, {Value: T.이름, 표시: "  └ " & T.이름, 종류: "팀"})}
+                ),
+                G
+            ),
+            Table({Value: wMy, 표시: wMy, 종류: "팀"})
+        )
+    )
+);
+Reset(drpRpDept);
+Select(btnRpApply)
+
+// ── btnRpApply.OnSelect  (선택 조직 + 하위 팀 범위로 필터. 전체일 때 부서 차트는 팀 → 상위 부서로 묶는다)
+Set(gblRpSelKind, Coalesce(drpRpDept.Selected.종류, "전체"));
+ClearCollect(colRpScope, Filter(colRpBU, 이름 = drpRpDept.Selected.Value || 상위 = drpRpDept.Selected.Value));
+ClearCollect(
+    colRpAssets,
+    ForAll(
+        Filter(
+            fnc_asset,
+            (IsBlank(dtRpFrom.SelectedDate) || 자산취득일 >= dtRpFrom.SelectedDate),
+            (IsBlank(dtRpTo.SelectedDate) || 자산취득일 <= dtRpTo.SelectedDate),
+            (IsBlank(drpRpCategory.Selected.Value) || Text(분류) = drpRpCategory.Selected.Value),
+            (gblRpSelKind = "전체" || 자산보유부서 in colRpScope.이름)
+        ) As A,
+        {
+            분류: Text(A.분류),
+            상태: Text(A.자산상태),
+            부서: With(
+                {wP: LookUp(colRpBU, 이름 = A.자산보유부서).상위},
+                If(
+                    gblRpSelKind = "전체" && Not(IsBlank(wP)) && Not(IsBlank(LookUp(colRpBU, 이름 = wP).상위)),
+                    wP,
+                    Coalesce(A.자산보유부서, "미지정")
+                )
+            ),
+            위치: Coalesce(A.보관위치.위치명, "미지정"),
+            상각: Text(A.감가상각기간),
+            취득연도: If(IsBlank(A.자산취득일), "미상", Text(Year(A.자산취득일))),
+            취득가액: Coalesce(A.취득가액, 0),
+            연상각: With(
+                {
+                    wT: Switch(
+                        A.감가상각기간,
+                        [@감가상각기간].'1년', 1,
+                        [@감가상각기간].'3년', 3,
+                        [@감가상각기간].'5년', 5,
+                        [@감가상각기간].'10년', 10,
+                        0
+                    ),
+                    wPassed: If(
+                        IsBlank(A.자산취득일),
+                        -1,
+                        RoundDown(DateDiff(A.자산취득일, Today(), TimeUnit.Months) / 12, 0)
+                    )
+                },
+                If(
+                    wT <= 0
+                        || wPassed < 0
+                        || wPassed >= wT
+                        || A.자산상태 = [@자산상태].파기완료
+                        || A.자산상태 = [@자산상태].손망실,
+                    0,
+                    Coalesce(A.취득가액, 0) / wT
+                )
+            )
+        }
+    )
+);
+ClearCollect(
+    colRpCh1,
+    ForAll(
+        Distinct(colRpAssets, 분류) As D,
+        { 라벨: D.Value, 값: CountRows(Filter(colRpAssets, 분류 = D.Value)) }
+    )
+);
+Set(gblRpMax1, Coalesce(Max(colRpCh1, 값), 1));
+ClearCollect(
+    colRpCh2,
+    ForAll(
+        Distinct(colRpAssets, 상태) As D,
+        { 라벨: D.Value, 값: CountRows(Filter(colRpAssets, 상태 = D.Value)) }
+    )
+);
+Set(gblRpMax2, Coalesce(Max(colRpCh2, 값), 1));
+ClearCollect(
+    colRpCh3,
+    ForAll(
+        Distinct(colRpAssets, 부서) As D,
+        { 라벨: D.Value, 값: CountRows(Filter(colRpAssets, 부서 = D.Value)) }
+    )
+);
+Set(gblRpMax3, Coalesce(Max(colRpCh3, 값), 1));
+ClearCollect(
+    colRpCh4,
+    ForAll(
+        Distinct(colRpAssets, 상각) As D,
+        { 라벨: D.Value, 값: CountRows(Filter(colRpAssets, 상각 = D.Value)) }
+    )
+);
+Set(gblRpMax4, Coalesce(Max(colRpCh4, 값), 1));
+ClearCollect(
+    colRpCh5,
+    ForAll(
+        Distinct(colRpAssets, 위치) As D,
+        { 라벨: D.Value, 값: CountRows(Filter(colRpAssets, 위치 = D.Value)) }
+    )
+);
+Set(gblRpMax5, Coalesce(Max(colRpCh5, 값), 1));
+ClearCollect(
+    colRpCh6,
+    ForAll(
+        Sort(Distinct(colRpAssets, 취득연도), Value, SortOrder.Ascending) As D,
+        { 라벨: D.Value, 값: CountRows(Filter(colRpAssets, 취득연도 = D.Value)) }
+    )
+);
+Set(gblRpMax6, Coalesce(Max(colRpCh6, 값), 1));
+ClearCollect(
+    colRpCh7,
+    ForAll(
+        Distinct(
+            Filter(
+                colRpAssets,
+                상태 = "파기예정" || 상태 = "파기신청"
+                || 상태 = "파기완료" || 상태 = "손망실"
+            ),
+            상태
+        ) As D,
+        { 라벨: D.Value, 값: CountRows(Filter(colRpAssets, 상태 = D.Value)) }
+    )
+);
+Set(gblRpMax7, Coalesce(Max(colRpCh7, 값), 1))
+
+// ── btnRpReset.OnSelect
+Reset(drpRpCategory); Reset(drpRpDept); Reset(dtRpFrom); Reset(dtRpTo); Select(btnRpApply)
+
+// ── chkRpCh3.DisplayMode  (팀을 고르면 부서별 보유현황 체크 비활성)
+If(gblRpSelKind = "팀", DisplayMode.Disabled, DisplayMode.Edit)
+
+// ── conRpCard3.Visible
+Coalesce(locRpShow3, false) && gblRpSelKind <> "팀"

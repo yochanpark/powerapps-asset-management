@@ -1,0 +1,30 @@
+# 컨트롤 YAML — 게시본(9/28 게시분)에서 그대로 옮김. 붙여넣을 부모에 맞게 들여쓰기만 조정
+# 페이지 번호 갤러리 — conPaging(가로 오토레이아웃) 안, icoPagePrev와 icoPageNext 사이
+# 붙여넣은 뒤 icoPageNext를 순서 바꾸기 → 끝으로 이동, conPaging Height 36 → 48
+# ⚠ 붙여넣으면 Studio가 btnPageNum.Height를 12~16으로 바꿔 놓는다 → 32로 다시 넣을 것(32는 기본값이라 YAML에 안 나타남)
+# ⚠ FillPortions: =0 이 없으면 "너비 조정 가능"이 켜져 Width가 안 먹는다
+# 다른 화면에 쓸 때는 colAssetSearch만 그 화면 컬렉션으로 바꾼다
+
+- galPageNum:
+    Control: Gallery@2.15.0
+    Variant: Horizontal
+    Properties:
+      FillPortions: =0
+      Height: =32
+      Items: |-
+        =With({wTotal: Max(1, RoundUp(CountRows(colAssetSearch) / locPageSize, 0))}, Sequence(Min(10, wTotal), Max(1, Min(locPage - 4, wTotal - 9))))
+      LayoutMinHeight: =16
+      LayoutMinWidth: =16
+      ShowScrollbar: =false
+      TemplatePadding: =2
+      TemplateSize: =36
+      Width: =Min(10, Max(1, RoundUp(CountRows(colAssetSearch) / locPageSize, 0))) * 38
+    Children:
+      - btnPageNum:
+          Control: ModernButton@1.0.0
+          Properties:
+            Appearance: =If(ThisItem.Value = locPage, ButtonAppearance.Primary, ButtonAppearance.Subtle)
+            OnSelect: |-
+              =UpdateContext({locPage: ThisItem.Value})
+            Text: =Text(ThisItem.Value)
+            Width: =32

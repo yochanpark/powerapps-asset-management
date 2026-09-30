@@ -1,0 +1,53 @@
+// 자산출고 scrAssetOut — 게시본(2026-09-29)에서 그대로 옮긴 수식
+
+// ── btnAoProcess.DisplayMode  (출고유형·인수부서·보관위치 셋 다 골라야 활성)
+If(IsBlank(drpAoOutType.Selected.Value) || IsBlank(cmbAoReceiveDept.Selected.Value) || IsBlank(drpAoReceiveLocation.Selected.위치명), DisplayMode.Disabled, DisplayMode.Edit)
+
+// ── btnAoProcess.OnSelect  (인수부서 = 콤보, 부서 간 이관만 이관중·나머지는 출고)
+ForAll(colAssetOutSelected As row,
+    Patch(fnc_assetout, Defaults(fnc_assetout),
+        {
+            출고번호: "OUT-" & Text(dteAoOutDate.SelectedDate, "yyyymmdd") & "-" & row.자산코드,
+            자산: row,
+            출고유형: drpAoOutType.Selected.Value,
+            출고일자: dteAoOutDate.SelectedDate,
+            출고사유: txtAoOutReason.Text,
+            인수부서: cmbAoReceiveDept.Selected.Value,
+            인수보관위치: drpAoReceiveLocation.Selected,
+            관리담당자: cmbAoReceiver.Selected,
+            처리자: Blank(),
+            처리일: Today()
+        }
+    );
+    Patch(fnc_asset, row,
+        {
+            자산상태: If(Text(drpAoOutType.Selected.Value) = "부서 간 이관", [@자산상태].이관중, [@자산상태].출고),
+            보관위치: drpAoReceiveLocation.Selected,
+            자산보유부서: cmbAoReceiveDept.Selected.Value
+        }
+    )
+);
+Notify("선택한 " & CountRows(colAssetOutSelected) & "건 출고·이관 처리되었습니다.", NotificationType.Success);
+ClearCollect(colAssetOutSearch, Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료 && 자산상태 <> [@자산상태].손망실));
+ClearCollect(colAssetOutSelected, Filter(fnc_asset, false))
+
+// ── lblFldReceiver.Text
+"관리담당자"
+
+// ── chkAoSelectAll.Label  (빈 문자열 — 전체선택 체크 글자가 헤더와 겹쳤다)
+
+
+// ── 상태 색 Switch — 3곳 동일: scrAssetOut.lblAoGalStatus / scrAsset.lblGalStatus / scrBarcodePrint.lblGalStatus_1 (.Color)
+Switch(
+    ThisItem.자산상태,
+    [@자산상태].사용, AppTheme.Color.RiskLow,
+    [@자산상태].보관, AppTheme.Color.StatusInfo,
+    [@자산상태].수리, AppTheme.Color.RiskHigh,
+    [@자산상태].이관중, AppTheme.Color.StatusReview,
+    [@자산상태].출고, AppTheme.Color.StatusReview,
+    [@자산상태].파기예정, AppTheme.Color.RiskCritical,
+    [@자산상태].파기신청, AppTheme.Color.RiskCritical,
+    [@자산상태].파기완료, AppTheme.Color.TextDisabled,
+    [@자산상태].손망실, AppTheme.Color.RiskCritical,
+    AppTheme.Color.TextSecondary
+)

@@ -1,0 +1,431 @@
+# 컨트롤 YAML — 게시본(2026-09-30)에서 그대로 옮김. 붙여넣을 부모에 맞게 들여쓰기만 조정
+# ① 필터 줄에 보유/미보유 체크 ② conSaBody — 가로: 조직 패널(conSaOrgPanel) + 목록 열(conSaListCol)
+#    conSaBody는 기존 conSaGalHeader·galSaAssetList·conSaPaging을 포함한 게시본 전체다.
+#    처음 만들 때는 빈 conSaListCol을 붙여넣고 기존 세 컨트롤을 잘라내기 → conSaListCol에 붙여넣기(이름 유지됨)
+
+- chkSaShowHold:
+    Control: ModernCheckbox@1.0.2
+    Properties:
+      Default: =true
+      Label: ="보유"
+      LayoutMinHeight: =16
+      LayoutMinWidth: =16
+      OnCheck: |-
+        =UpdateContext({locSaPage: 1})
+      OnUncheck: |-
+        =UpdateContext({locSaPage: 1})
+      Width: =80
+
+- chkSaShowMissing:
+    Control: ModernCheckbox@1.0.2
+    Properties:
+      Default: =true
+      Label: ="미보유"
+      LayoutMinHeight: =16
+      LayoutMinWidth: =16
+      OnCheck: |-
+        =UpdateContext({locSaPage: 1})
+      OnUncheck: |-
+        =UpdateContext({locSaPage: 1})
+      Width: =90
+
+- conSaBody:
+    Control: GroupContainer@1.5.0
+    Variant: AutoLayout
+    Properties:
+      LayoutAlignItems: =LayoutAlignItems.Stretch
+      LayoutDirection: =LayoutDirection.Horizontal
+      LayoutGap: =12
+      LayoutMinHeight: =200
+      LayoutMinWidth: =16
+    Children:
+      - conSaOrgPanel:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            Fill: =AppTheme.Color.ContentBg
+            FillPortions: =0
+            LayoutAlignItems: =LayoutAlignItems.Stretch
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =8
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =300
+          Children:
+            - conSaOrgDeptCol:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  LayoutAlignItems: =LayoutAlignItems.Stretch
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =4
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                Children:
+                  - lblSaOrgDeptHdr:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        FontWeight: =FontWeight.Bold
+                        Height: =28
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =12
+                        Text: ="부서"
+                  - galSaOrgDept:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        Items: =Sort(Filter(colSaBU, 상위 = gblSaRootBU), 이름)
+                        LayoutMinHeight: =60
+                        LayoutMinWidth: =16
+                        TemplatePadding: =0
+                        TemplateSize: =36
+                      Children:
+                        - chkSaOrgDept:
+                            Control: ModernCheckbox@1.0.2
+                            Properties:
+                              Default: =ThisItem.이름 in colSaSelOrg.이름
+                              Label: =ThisItem.이름
+                              OnCheck: |-
+                                =Collect(colSaSelOrg, {이름: ThisItem.이름});
+                                ClearCollect(colSaOrgScope, Filter(colSaBU, 이름 in colSaSelOrg.이름 || 상위 in colSaSelOrg.이름));
+                                UpdateContext({locSaPage: 1})
+                              OnUncheck: |-
+                                =RemoveIf(colSaSelOrg, 이름 = ThisItem.이름);
+                                ClearCollect(colSaOrgScope, Filter(colSaBU, 이름 in colSaSelOrg.이름 || 상위 in colSaSelOrg.이름));
+                                UpdateContext({locSaPage: 1})
+                              Width: =Parent.TemplateWidth - 8
+                              X: =4
+                              Y: =4
+            - conSaOrgTeamCol:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  LayoutAlignItems: =LayoutAlignItems.Stretch
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =4
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                Children:
+                  - lblSaOrgTeamHdr:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        FontWeight: =FontWeight.Bold
+                        Height: =28
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =12
+                        Text: ="팀"
+                  - galSaOrgTeam:
+                      Control: Gallery@2.15.0
+                      Variant: Vertical
+                      Properties:
+                        Items: =Sort(Filter(colSaBU, Not(IsBlank(상위)) && 상위 <> gblSaRootBU), 이름)
+                        LayoutMinHeight: =60
+                        LayoutMinWidth: =16
+                        TemplatePadding: =0
+                        TemplateSize: =36
+                      Children:
+                        - chkSaOrgTeam:
+                            Control: ModernCheckbox@1.0.2
+                            Properties:
+                              Default: =ThisItem.이름 in colSaSelOrg.이름
+                              Label: =ThisItem.이름
+                              OnCheck: |-
+                                =Collect(colSaSelOrg, {이름: ThisItem.이름});
+                                ClearCollect(colSaOrgScope, Filter(colSaBU, 이름 in colSaSelOrg.이름 || 상위 in colSaSelOrg.이름));
+                                UpdateContext({locSaPage: 1})
+                              OnUncheck: |-
+                                =RemoveIf(colSaSelOrg, 이름 = ThisItem.이름);
+                                ClearCollect(colSaOrgScope, Filter(colSaBU, 이름 in colSaSelOrg.이름 || 상위 in colSaSelOrg.이름));
+                                UpdateContext({locSaPage: 1})
+                              Width: =Parent.TemplateWidth - 8
+                              X: =4
+                              Y: =4
+      - conSaListCol:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            LayoutAlignItems: =LayoutAlignItems.Stretch
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+          Children:
+            - conSaGalHeader:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Fill: =AppTheme.Color.ScreenBg
+                  FillPortions: =0
+                  Height: =32
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutMinHeight: =32
+                  LayoutMinWidth: =16
+                  PaddingBottom: =8
+                  PaddingTop: =8
+                Children:
+                  - chkSaSelectAll:
+                      Control: ModernCheckbox@1.0.2
+                      Properties:
+                        Default: =CountRows(colSaSelected) = CountRows(galSaAssetList.AllItems) && CountRows(galSaAssetList.AllItems) > 0
+                        FontWeight: =""
+                        Height: =Parent.Height
+                        Label: =
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnCheck: =ClearCollect(colSaSelected, galSaAssetList.AllItems)
+                        OnUncheck: =Clear(colSaSelected)
+                        Width: =Parent.Width * 0.08
+                  - lblSaHdrCode:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Text: ="자산코드"
+                        Width: =Parent.Width * 0.15
+                  - lblSaHdrName:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Text: ="자산명"
+                        Width: =Parent.Width * 0.24
+                  - lblSaHdrDept:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Text: ="분류"
+                        Width: =Parent.Width * 0.15
+                  - lblSaHdrValue:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Text: ="취득일"
+                        Width: =Parent.Width * 0.13
+                  - lblSaHdrDepr:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Text: ="자산실사결과"
+                        Width: =Parent.Width * 0.11
+                  - lblSaHdrStatus:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        FontWeight: =FontWeight.Bold
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Text: ="자산처리방안"
+                        Width: =Parent.Width * 0.14
+            - galSaAssetList:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  Items: |-
+                    =With(
+                        {
+                            wL: Filter(
+                                colSaList As R,
+                                radSaFilter.Selected.Value = "전체"
+                                || (radSaFilter.Selected.Value = "보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)
+                                || (radSaFilter.Selected.Value = "미보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)
+                                || (radSaFilter.Selected.Value = "미확인" && IsBlank(R.보유여부))
+                                || (radSaFilter.Selected.Value = "출고" && !IsBlank(LookUp(fnc_assetout, 자산.자산코드 = R.자산.자산코드))),
+                                (IsBlank(R.보유여부) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유 && chkSaShowHold.Checked) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유 && chkSaShowMissing.Checked)),
+                                (CountRows(colSaOrgScope) = 0 || R.자산.자산보유부서 in colSaOrgScope.이름)
+                            )
+                        },
+                        FirstN(LastN(wL, CountRows(wL) - Coalesce(locSaPage, 1) * 10 + 10), 10)
+                    )
+                  LayoutMinHeight: =120
+                  LayoutMinWidth: =16
+                  TemplatePadding: =0
+                  TemplateSize: =52
+                Children:
+                  - chkSaSelect:
+                      Control: ModernCheckbox@1.0.2
+                      Properties:
+                        Default: =!IsBlank(LookUp(colSaSelected, 자산.자산코드 = ThisItem.자산.자산코드))
+                        FontWeight: =""
+                        Height: =24
+                        Label: =
+                        OnCheck: |-
+                          =Collect(colSaSelected, ThisItem);
+                          Select(Parent)
+                        OnUncheck: |-
+                          =RemoveIf(colSaSelected, 자산.자산코드 = ThisItem.자산.자산코드);
+                          Select(Parent)
+                        Width: =31
+                        Y: =(Parent.TemplateHeight - 24) / 2
+                  - lblSaGalCode:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Select(Parent)
+                        Text: =ThisItem.자산.자산코드
+                        Width: =Parent.TemplateWidth * 0.15
+                        X: =Parent.TemplateWidth * 0.08
+                  - lblSaGalName:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Select(Parent)
+                        Text: =ThisItem.자산.자산명
+                        Width: =Parent.TemplateWidth * 0.24
+                        X: =Parent.TemplateWidth * 0.23
+                  - lblSaGalDept:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Select(Parent)
+                        Text: =Text(ThisItem.자산.분류)
+                        Width: =Parent.TemplateWidth * 0.15
+                        X: =Parent.TemplateWidth * 0.47
+                  - lblSaGalValue:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Select(Parent)
+                        Text: =Text(ThisItem.자산.자산취득일, "yyyy-mm-dd")
+                        Width: =Parent.TemplateWidth * 0.13
+                        X: =Parent.TemplateWidth * 0.62
+                  - lblSaGalDepr:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Color: =If(ThisItem.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유, AppTheme.Color.RiskCritical, AppTheme.Color.TextPrimary)
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Select(Parent)
+                        Text: =If(IsBlank(ThisItem.보유여부), "", Text(ThisItem.보유여부))
+                        Width: =Parent.TemplateWidth * 0.11
+                        X: =Parent.TemplateWidth * 0.75
+                  - lblSaGalStatus:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Color: =If(ThisItem.처리방안 = '총무처리결과 (fnc_stocktake_detail)'.폐기처리 || ThisItem.처리방안 = '총무처리결과 (fnc_stocktake_detail)'.재확인요청, AppTheme.Color.RiskCritical, AppTheme.Color.TextPrimary)
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Select(Parent)
+                        Text: |-
+                          =If(
+                              Not(IsBlank(ThisItem.처리방안)) && Not(ThisItem.처리방안 = '총무처리결과 (fnc_stocktake_detail)'.재확인요청 && Not(IsBlank(ThisItem.보유여부))),
+                              Text(ThisItem.처리방안),
+                              ThisItem.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유,
+                              "완료",
+                              ""
+                          )
+                        Width: =Parent.TemplateWidth * 0.14
+                        X: =Parent.TemplateWidth * 0.86
+            - conSaPaging:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  FillPortions: =0
+                  Height: =32
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =16
+                  LayoutJustifyContent: =LayoutJustifyContent.Center
+                  LayoutMinHeight: =32
+                  LayoutMinWidth: =16
+                  PaddingBottom: =8
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =8
+                Children:
+                  - icoSaPagePrev:
+                      Control: ModernIcon@1.1.1
+                      Properties:
+                        DisplayMode: |-
+                          =If(
+                              Coalesce(locSaPage, 1) > 1,
+                              DisplayMode.Edit,
+                              DisplayMode.Disabled
+                          )
+                        Icon: =Icon.ChevronLeft
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: |-
+                          =UpdateContext({locSaPage: Max(1, Coalesce(locSaPage, 1) - 1)})
+                  - lblSaPageInfo:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Size: =12
+                        Text: |-
+                          =Coalesce(locSaPage, 1) & " / " & Max(
+                              1,
+                              RoundUp(
+                                  CountRows(
+                                      Filter(
+                                          colSaList As R,
+                                          radSaFilter.Selected.Value = "전체"
+                                          || (radSaFilter.Selected.Value = "보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)
+                                          || (radSaFilter.Selected.Value = "미보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)
+                                          || (radSaFilter.Selected.Value = "미확인" && IsBlank(R.보유여부))
+                                          || (radSaFilter.Selected.Value = "출고" && !IsBlank(LookUp(fnc_assetout, 자산.자산코드 = R.자산.자산코드))),
+                                          (IsBlank(R.보유여부) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유 && chkSaShowHold.Checked) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유 && chkSaShowMissing.Checked)),
+                                          (CountRows(colSaOrgScope) = 0 || R.자산.자산보유부서 in colSaOrgScope.이름)
+                                      )
+                                  ) / 10,
+                                  0
+                              )
+                          )
+                        Width: =80
+                  - icoSaPageNext:
+                      Control: ModernIcon@1.1.1
+                      Properties:
+                        DisplayMode: |-
+                          =If(
+                              Coalesce(locSaPage, 1) < Max(
+                                  1,
+                                  RoundUp(
+                                      CountRows(
+                                          Filter(
+                                              colSaList As R,
+                                              radSaFilter.Selected.Value = "전체"
+                                              || (radSaFilter.Selected.Value = "보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)
+                                              || (radSaFilter.Selected.Value = "미보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)
+                                              || (radSaFilter.Selected.Value = "미확인" && IsBlank(R.보유여부))
+                                              || (radSaFilter.Selected.Value = "출고" && !IsBlank(LookUp(fnc_assetout, 자산.자산코드 = R.자산.자산코드))),
+                                              (IsBlank(R.보유여부) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유 && chkSaShowHold.Checked) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유 && chkSaShowMissing.Checked)),
+                                              (CountRows(colSaOrgScope) = 0 || R.자산.자산보유부서 in colSaOrgScope.이름)
+                                          )
+                                      ) / 10,
+                                      0
+                                  )
+                              ),
+                              DisplayMode.Edit,
+                              DisplayMode.Disabled
+                          )
+                        Icon: =Icon.ChevronRight
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        OnSelect: |-
+                          =UpdateContext({locSaPage: Coalesce(locSaPage, 1) + 1})

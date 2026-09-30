@@ -1,0 +1,17 @@
+// 새로고침(초기화) 버튼 OnSelect — Reset 과 변수 초기화 양쪽에 종료일을 더한다.
+// 둘 중 하나만 하면 화면은 비는데 필터가 남거나, 그 반대가 된다.
+
+Reset(drpApprovalTableView);
+Reset(dteApprovalDate);
+Reset(dteApprovalDate_1);            // 추가
+Reset(txtApprovalTitleInput);
+Reset(txtApprovalNumberInput);
+
+UpdateContext({
+    locFilterDate: Blank(),
+    locFilterDateTo: Blank(),        // 추가
+    locFilterTitle: "",
+    locFilterNumber: ""
+});
+
+// ... 이하 기존 Refresh / ClearCollect 그대로

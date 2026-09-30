@@ -1,0 +1,120 @@
+Set(gblSdUploadMsg, "가져오는 중...");
+If(
+    IsBlank(varSdActiveStocktake),
+    Set(gblSdUploadMsg, "올해 실사 헤더가 없습니다. 총무 담당자에게 문의하세요."),
+    Not(EndsWith(First(attSdUploadFile.Attachments).Name, ".csv")),
+    Set(gblSdUploadMsg, "CSV 파일(.csv)을 선택하세요. 엑셀(.xlsx)은 지원하지 않습니다."),
+    Set(
+        gblSdCsvText,
+        '자산관리-재고실사CSV업로드'.Run(
+            {
+                name: First(attSdUploadFile.Attachments).Name,
+                contentBytes: First(attSdUploadFile.Attachments).Value
+            }
+        ).csvtext
+    );
+    ClearCollect(
+        colSdCsvLines,
+        Filter(
+            Split(Substitute(gblSdCsvText, Char(13), ""), Char(10)),
+            Not(IsBlank(Trim(Value)))
+        )
+    );
+    ClearCollect(
+        colSdCsvHead,
+        ForAll(
+            Sequence(CountRows(Split(First(colSdCsvLines).Value, ","))) As S,
+            {
+                idx: S.Value,
+                name: Trim(Substitute(Index(Split(First(colSdCsvLines).Value, ","), S.Value).Value, """", ""))
+            }
+        )
+    );
+    Set(gblSdColCode, LookUp(colSdCsvHead, name = "자산코드").idx);
+    Set(gblSdColHold, LookUp(colSdCsvHead, name = "보유여부").idx);
+    If(
+        IsBlank(gblSdColCode) || IsBlank(gblSdColHold),
+        Set(gblSdUploadMsg, "CSV에서 '자산코드' 또는 '보유여부' 열을 찾지 못했습니다. 엑셀 내보내기와 같은 형식인지, 파일을 UTF-8로 저장했는지 확인하세요."),
+        ClearCollect(
+            colSdCsvRows,
+            ForAll(
+                Sequence(CountRows(colSdCsvLines) - 1, 2) As R,
+                {
+                    코드: Trim(Substitute(Index(Split(Index(colSdCsvLines, R.Value).Value, ","), gblSdColCode).Value, """", "")),
+                    보유: Trim(Substitute(Index(Split(Index(colSdCsvLines, R.Value).Value, ","), gblSdColHold).Value, """", ""))
+                }
+            )
+        );
+        ClearCollect(
+            colSdCsvApply,
+            Filter(
+                colSdCsvRows As C,
+                (C.보유 = "보유" || C.보유 = "미보유")
+                    && Not(IsBlank(LookUp(colSdList, 자산.자산코드 = C.코드)))
+            )
+        );
+        ForAll(
+            colSdCsvApply As C,
+            If(
+                IsBlank(LookUp(colSdDetail, 스캔자산코드 = C.코드)),
+                Patch(
+                    fnc_stocktake_detail,
+                    Defaults(fnc_stocktake_detail),
+                    {
+                        실사헤더: varSdActiveStocktake,
+                        자산: LookUp(colSdList, 자산.자산코드 = C.코드).자산,
+                        스캔자산코드: C.코드,
+                        보유여부: If(
+                            C.보유 = "보유",
+                            '보유여부 (fnc_stocktake_detail)'.보유,
+                            '보유여부 (fnc_stocktake_detail)'.미보유
+                        )
+                    }
+                ),
+                Patch(
+                    fnc_stocktake_detail,
+                    LookUp(colSdDetail, 스캔자산코드 = C.코드),
+                    {
+                        보유여부: If(
+                            C.보유 = "보유",
+                            '보유여부 (fnc_stocktake_detail)'.보유,
+                            '보유여부 (fnc_stocktake_detail)'.미보유
+                        ),
+                        미보유사유: Blank()
+                    }
+                )
+            )
+        );
+        ClearCollect(
+            colSdDetail,
+            Filter(
+                fnc_stocktake_detail,
+                실사헤더.부서 = gblCurrentUser.사업부.이름
+                    && 실사헤더.실사연도 = Text(Year(Today()))
+            )
+        );
+        ClearCollect(
+            colSdList,
+            ForAll(
+                Filter(
+                    fnc_asset,
+                    자산보유부서 = gblCurrentUser.사업부.이름,
+                    자산상태 <> [@자산상태].파기완료,
+                    자산상태 <> [@자산상태].손망실
+                ) As A,
+                {
+                    자산: A,
+                    보유여부: LookUp(colSdDetail, 자산.자산코드 = A.자산코드).보유여부,
+                    미보유사유: LookUp(colSdDetail, 자산.자산코드 = A.자산코드).미보유사유
+                }
+            )
+        );
+        Set(
+            gblSdUploadMsg,
+            "반영 " & CountRows(colSdCsvApply) & "건 / 건너뜀 " & (CountRows(colSdCsvRows) - CountRows(colSdCsvApply)) & "건"
+        );
+        Notify("CSV 반영 완료: " & CountRows(colSdCsvApply) & "건", NotificationType.Success);
+        ResetForm(frmSdUpload)
+    )
+)
+

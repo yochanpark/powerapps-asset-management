@@ -1,0 +1,614 @@
+# 컨트롤 YAML — 게시본(2026-09-30 장표 10 반영)에서 그대로 옮김. 붙여넣을 부모에 맞게 들여쓰기만 조정
+# scrAssetOut 검색부를 _Dr 이름으로 복사한 것. conDrPageList 안, 제목 아래에 붙여넣는다
+# 자산보유부서 칸(conFldDept_Dr)에는 drpDrDept 드롭다운이 들어 있다 — Items = colDrDeptOpt(화면 OnVisible이 만든다)
+
+- conDrSearchPanel:
+    Control: GroupContainer@1.5.0
+    Variant: AutoLayout
+    Properties:
+      AlignInContainer: =AlignInContainer.SetByContainer
+      Fill: =AppTheme.Color.ContentBg
+      FillPortions: =0
+      Height: =226
+      LayoutAlignItems: =LayoutAlignItems.Stretch
+      LayoutDirection: =LayoutDirection.Horizontal
+      LayoutGap: =12
+      LayoutMinHeight: =16
+      LayoutMinWidth: =16
+      PaddingBottom: =12
+      PaddingLeft: =16
+      PaddingRight: =16
+      PaddingTop: =12
+    Children:
+      - conSearchGrid_Dr:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            LayoutAlignItems: =LayoutAlignItems.Stretch
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =8
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+          Children:
+            - conSearchRow1_Dr:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.SetByContainer
+                  FillPortions: =0
+                  Height: =62
+                  LayoutAlignItems: =LayoutAlignItems.Stretch
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =12
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =3
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =3
+                Children:
+                  - conFldName_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldName_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="자산명"
+                        - txtSearchName_Dr:
+                            Control: ModernTextInput@1.1.2
+                            Properties:
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldCode_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldCode_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="자산코드"
+                        - txtSearchCode_Dr:
+                            Control: ModernTextInput@1.1.2
+                            Properties:
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldCategory_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldCategory_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="분류"
+                        - drpCategory_Dr:
+                            Control: ModernDropdown@1.0.3
+                            Properties:
+                              ItemDisplayText: =ThisItem.Value
+                              Items: =Choices(fnc_asset.분류)
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldStatus_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldStatus_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="자산상태"
+                        - drpStatus_Dr:
+                            Control: ModernDropdown@1.0.3
+                            Properties:
+                              ItemDisplayText: =ThisItem.Value
+                              Items: =Choices(fnc_asset.자산상태)
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldLocation_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldLocation_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="보관위치"
+                        - drpLocation_Dr:
+                            Control: ModernDropdown@1.0.3
+                            Properties:
+                              ItemDisplayText: =ThisItem.cr5f6_fnc_locationname
+                              Items: =ShowColumns(Filter(fnc_location, 사용여부 = true), cr5f6_fnc_locationname)
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+            - conSearchRow2_Dr:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.SetByContainer
+                  FillPortions: =0
+                  Height: =62
+                  LayoutAlignItems: =LayoutAlignItems.Stretch
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =12
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =3
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =3
+                Children:
+                  - conFldAcqFrom_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldAcqFrom_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="취득일 (시작)"
+                        - dteAcqFrom_Dr:
+                            Control: ModernDatePicker@1.0.2
+                            Properties:
+                              DefaultDate: =Blank()
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                              X: =40
+                              Y: =40
+                  - conFldAcqTo_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldAcqTo_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="취득일 (끝)"
+                        - dteAcqTo_Dr:
+                            Control: ModernDatePicker@1.0.2
+                            Properties:
+                              DefaultDate: =Blank()
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                              X: =40
+                              Y: =40
+                  - conFldAmtFrom_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldAmtFrom_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="취득가액 (이상)"
+                        - txtAmtFrom_Dr:
+                            Control: ModernTextInput@1.1.2
+                            Properties:
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldAmtTo_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldAmtTo_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="취득가액 (이하)"
+                        - txtAmtTo_Dr:
+                            Control: ModernTextInput@1.1.2
+                            Properties:
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldDepre_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldDepre_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="감가상각"
+                        - drpDepre_Dr:
+                            Control: ModernDropdown@1.0.3
+                            Properties:
+                              ItemDisplayText: =ThisItem.Value
+                              Items: =Choices(fnc_asset.감가상각기간)
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+            - conSearchRow3_Dr:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.SetByContainer
+                  FillPortions: =0
+                  Height: =62
+                  LayoutAlignItems: =LayoutAlignItems.Stretch
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =12
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =3
+                  PaddingLeft: =8
+                  PaddingRight: =8
+                  PaddingTop: =3
+                Children:
+                  - conFldRemainFrom_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldRemainFrom_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="잔존감가 (이상)"
+                        - txtRemainFrom_Dr:
+                            Control: ModernTextInput@1.1.2
+                            Properties:
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldRemainTo_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldRemainTo_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="잔존감가 (이하)"
+                        - txtRemainTo_Dr:
+                            Control: ModernTextInput@1.1.2
+                            Properties:
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldDept_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldDept_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="자산보유부서"
+                        - drpDrDept:
+                            Control: ModernDropdown@1.0.3
+                            Properties:
+                              AccessibleLabel: ="자산보유부서"
+                              Default: =First(colDrDeptOpt)
+                              DisplayMode: =If(CountRows(colDrDeptOpt) > 1, DisplayMode.Edit, DisplayMode.Disabled)
+                              ItemDisplayText: =ThisItem.표시
+                              Items: =colDrDeptOpt
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldRegistrant_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldRegistrant_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="등록담당자"
+                        - txtSearchRegistrant_Dr:
+                            Control: ModernTextInput@1.1.2
+                            Properties:
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+                  - conFldRequester_Dr:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Stretch
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =2
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingLeft: =6
+                        PaddingRight: =6
+                      Children:
+                        - lblFldRequester_Dr:
+                            Control: Label@2.5.1
+                            Properties:
+                              Height: =20
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="자산등록 요청자"
+                        - txtSearchRequester_Dr:
+                            Control: ModernTextInput@1.1.2
+                            Properties:
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =70
+      - conFldButtons_Dr:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            FillPortions: =0
+            LayoutAlignItems: =LayoutAlignItems.Stretch
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =8
+            LayoutJustifyContent: =LayoutJustifyContent.Center
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Width: =120
+          Children:
+            - btnSearch_Dr:
+                Control: ModernButton@1.0.0
+                Properties:
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: |-
+                    =Set(gblDrSelKind, Coalesce(drpDrDept.Selected.종류, "전체"));
+                    ClearCollect(colDrScope, Filter(colDrBU, 이름 = drpDrDept.Selected.Value || 상위 = drpDrDept.Selected.Value));
+                    ClearCollect(
+                        colDrList,
+                        Filter(
+                            ForAll(
+                                Filter(
+                                    fnc_asset,
+                                    (gblDrSelKind = "전체" || 자산보유부서 in colDrScope.이름) &&
+                                    자산상태 <> [@자산상태].파기완료 && 자산상태 <> [@자산상태].손망실 && 자산상태 <> [@자산상태].파기신청 &&
+                                    (IsBlank(drpStatus_Dr.Selected.Value) || 자산상태 = drpStatus_Dr.Selected.Value) &&
+                                    (IsBlank(txtSearchName_Dr.Text) || txtSearchName_Dr.Text in 자산명) &&
+                                    (IsBlank(txtSearchCode_Dr.Text) || txtSearchCode_Dr.Text in 자산코드) &&
+                                    (IsBlank(dteAcqFrom_Dr.SelectedDate) || 자산취득일 >= dteAcqFrom_Dr.SelectedDate) &&
+                                    (IsBlank(dteAcqTo_Dr.SelectedDate) || 자산취득일 <= dteAcqTo_Dr.SelectedDate) &&
+                                    (IsBlank(txtAmtFrom_Dr.Text) || 취득가액 >= Value(txtAmtFrom_Dr.Text)) &&
+                                    (IsBlank(txtAmtTo_Dr.Text) || 취득가액 <= Value(txtAmtTo_Dr.Text)) &&
+                                    (IsBlank(drpCategory_Dr.Selected.Value) || 분류 = drpCategory_Dr.Selected.Value) &&
+                                    (IsBlank(drpDepre_Dr.Selected.Value) || 감가상각기간 = drpDepre_Dr.Selected.Value) &&
+                                    (IsBlank(drpLocation_Dr.Selected) || 보관위치.위치명 = drpLocation_Dr.Selected.cr5f6_fnc_locationname) &&
+                                    (IsBlank(txtSearchRegistrant_Dr.Text) || txtSearchRegistrant_Dr.Text in 등록담당자.'전체 이름') &&
+                                    (IsBlank(txtSearchRequester_Dr.Text) || txtSearchRequester_Dr.Text in 자산등록요청자.'전체 이름')
+                                ) As A,
+                                With(
+                                    {
+                                        wTotal: Switch(
+                                            A.감가상각기간,
+                                            [@감가상각기간].'1년', 1,
+                                            [@감가상각기간].'3년', 3,
+                                            [@감가상각기간].'5년', 5,
+                                            [@감가상각기간].'10년', 10,
+                                            0
+                                        ),
+                                        wPassed: If(
+                                            IsBlank(A.자산취득일),
+                                            0,
+                                            (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(A.자산취득일) - If(Month(A.자산취득일) < 4, 1, 0))
+                                        )
+                                    },
+                                    {
+                                        자산: A,
+                                        잔존연수: If(A.감가상각기간 = [@감가상각기간].영구, 99, Max(0, wTotal - wPassed)),
+                                        잔존금액: If(wTotal <= 0, Coalesce(A.취득가액, 0), Coalesce(A.취득가액, 0) * Max(0, wTotal - wPassed) / wTotal)
+                                    }
+                                )
+                            ),
+                            (IsBlank(txtRemainFrom_Dr.Text) || 잔존금액 >= Value(txtRemainFrom_Dr.Text)) &&
+                            (IsBlank(txtRemainTo_Dr.Text) || 잔존금액 <= Value(txtRemainTo_Dr.Text))
+                        )
+                    );
+                    Clear(colDrSelected);
+                    UpdateContext({locDrPage: 1})
+                  Text: ="검색"
+                  X: =40
+                  Y: =40
+            - btnResetSearch_Dr:
+                Control: ModernButton@1.0.0
+                Properties:
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: |-
+                    =Reset(txtSearchName_Dr); Reset(txtSearchCode_Dr);
+                    Reset(dteAcqFrom_Dr); Reset(dteAcqTo_Dr);
+                    Reset(txtAmtFrom_Dr); Reset(txtAmtTo_Dr);
+                    Reset(drpCategory_Dr); Reset(drpStatus_Dr); Reset(drpDepre_Dr); Reset(drpLocation_Dr);
+                    Reset(drpDrDept);
+                    Reset(txtRemainFrom_Dr); Reset(txtRemainTo_Dr);
+                    Reset(txtSearchRegistrant_Dr); Reset(txtSearchRequester_Dr);
+                    Select(btnSearch_Dr)
+                  Text: ="초기화"
+                  X: =40
+                  Y: =40

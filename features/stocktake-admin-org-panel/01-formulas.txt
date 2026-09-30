@@ -1,0 +1,306 @@
+// 총무 재고실사 scrStockTakeAdmin — 게시본(2026-09-30)에서 그대로 옮긴 수식
+
+// ── scrStockTakeAdmin.OnVisible  (조직 목록·선택 초기화, colSaList에 처리방안. 손망실 자산은 폐기처리분만 남긴다)
+ClearCollect(colSaBU, ForAll('사업부 ' As B, {이름: B.이름, 상위: B.'상위 사업'.이름}));
+Set(gblSaRootBU, LookUp(colSaBU, IsBlank(상위)).이름);
+Clear(colSaSelOrg);
+Clear(colSaOrgScope);
+ClearCollect(
+    colSaDetail,
+    Filter(
+        fnc_stocktake_detail,
+        실사헤더.실사연도 = Text(Year(Today()))
+    )
+);
+ClearCollect(
+    colSaList,
+    Filter(
+        ForAll(
+            Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료) As A,
+            With(
+                {wD: LookUp(colSaDetail, 자산.자산코드 = A.자산코드)},
+                {자산: A, 보유여부: wD.보유여부, 처리방안: wD.총무처리결과}
+            )
+        ),
+        자산.자산상태 <> [@자산상태].손망실 || 처리방안 = '총무처리결과 (fnc_stocktake_detail)'.폐기처리
+    )
+)
+;
+Clear(colSaSelected);
+Set(gblSaShowWriteOffConfirm, false);
+UpdateContext({locSaPage: 1, locSaPageSize: 20})
+
+// ── galSaAssetList.Items  (보유/미보유 체크 + 조직 범위 조건. 페이지는 FirstN(LastN(...)) — 9/30 겹침 수정)
+With(
+    {
+        wL: Filter(
+            colSaList As R,
+            radSaFilter.Selected.Value = "전체"
+            || (radSaFilter.Selected.Value = "보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)
+            || (radSaFilter.Selected.Value = "미보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)
+            || (radSaFilter.Selected.Value = "미확인" && IsBlank(R.보유여부))
+            || (radSaFilter.Selected.Value = "출고" && !IsBlank(LookUp(fnc_assetout, 자산.자산코드 = R.자산.자산코드))),
+            (IsBlank(R.보유여부) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유 && chkSaShowHold.Checked) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유 && chkSaShowMissing.Checked)),
+            (CountRows(colSaOrgScope) = 0 || R.자산.자산보유부서 in colSaOrgScope.이름)
+        )
+    },
+    FirstN(LastN(wL, CountRows(wL) - Coalesce(locSaPage, 1) * 10 + 10), 10)
+)
+
+// ── lblSaListTitle.Text
+"자산 목록 (총 " & CountRows(
+    Filter(
+        colSaList As R,
+        radSaFilter.Selected.Value = "전체"
+        || (radSaFilter.Selected.Value = "보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)
+        || (radSaFilter.Selected.Value = "미보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)
+        || (radSaFilter.Selected.Value = "미확인" && IsBlank(R.보유여부))
+        || (radSaFilter.Selected.Value = "출고" && !IsBlank(LookUp(fnc_assetout, 자산.자산코드 = R.자산.자산코드))),
+        (IsBlank(R.보유여부) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유 && chkSaShowHold.Checked) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유 && chkSaShowMissing.Checked)),
+        (CountRows(colSaOrgScope) = 0 || R.자산.자산보유부서 in colSaOrgScope.이름)
+    )
+) & "건)"
+
+// ── lblSaPageInfo.Text
+Coalesce(locSaPage, 1) & " / " & Max(
+    1,
+    RoundUp(
+        CountRows(
+            Filter(
+                colSaList As R,
+                radSaFilter.Selected.Value = "전체"
+                || (radSaFilter.Selected.Value = "보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)
+                || (radSaFilter.Selected.Value = "미보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)
+                || (radSaFilter.Selected.Value = "미확인" && IsBlank(R.보유여부))
+                || (radSaFilter.Selected.Value = "출고" && !IsBlank(LookUp(fnc_assetout, 자산.자산코드 = R.자산.자산코드))),
+                (IsBlank(R.보유여부) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유 && chkSaShowHold.Checked) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유 && chkSaShowMissing.Checked)),
+                (CountRows(colSaOrgScope) = 0 || R.자산.자산보유부서 in colSaOrgScope.이름)
+            )
+        ) / 10,
+        0
+    )
+)
+
+// ── icoSaPageNext.DisplayMode
+If(
+    Coalesce(locSaPage, 1) < Max(
+        1,
+        RoundUp(
+            CountRows(
+                Filter(
+                    colSaList As R,
+                    radSaFilter.Selected.Value = "전체"
+                    || (radSaFilter.Selected.Value = "보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유)
+                    || (radSaFilter.Selected.Value = "미보유" && R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유)
+                    || (radSaFilter.Selected.Value = "미확인" && IsBlank(R.보유여부))
+                    || (radSaFilter.Selected.Value = "출고" && !IsBlank(LookUp(fnc_assetout, 자산.자산코드 = R.자산.자산코드))),
+                    (IsBlank(R.보유여부) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유 && chkSaShowHold.Checked) || (R.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유 && chkSaShowMissing.Checked)),
+                    (CountRows(colSaOrgScope) = 0 || R.자산.자산보유부서 in colSaOrgScope.이름)
+                )
+            ) / 10,
+            0
+        )
+    ),
+    DisplayMode.Edit,
+    DisplayMode.Disabled
+)
+
+// ── chkSaOrgDept.OnCheck  (팀 체크 chkSaOrgTeam도 같은 식. OnUncheck는 Collect 대신 RemoveIf)
+Collect(colSaSelOrg, {이름: ThisItem.이름});
+ClearCollect(colSaOrgScope, Filter(colSaBU, 이름 in colSaSelOrg.이름 || 상위 in colSaSelOrg.이름));
+UpdateContext({locSaPage: 1})
+
+// ── btnSaRecheckRequest.OnSelect  (재확인 요청: 상세 행을 지우지 않고 비운 뒤 처리방안 = 재확인요청, 부서 헤더는 미제출로)
+ForAll(
+    colSaSelected As S,
+    With(
+        {wD: LookUp(fnc_stocktake_detail, 실사헤더.실사연도 = Text(Year(Today())) && 자산.자산코드 = S.자산.자산코드)},
+        If(
+            Not(IsBlank(wD)),
+            Patch(fnc_stocktake_detail, wD, {보유여부: Blank(), 미보유사유: Blank(), '미보유사유 상세': Blank(), 총무처리결과: '총무처리결과 (fnc_stocktake_detail)'.재확인요청})
+        )
+    )
+);
+ForAll(
+    Distinct(colSaSelected, 자산.자산보유부서) As D,
+    If(
+        !IsBlank(
+            LookUp(
+                fnc_stocktake,
+                부서 = D.Value && 실사연도 = Text(Year(Today()))
+            )
+        ),
+        Patch(
+            fnc_stocktake,
+            LookUp(
+                fnc_stocktake,
+                부서 = D.Value && 실사연도 = Text(Year(Today()))
+            ),
+            { 제출상태: '제출상태 (fnc_stocktake)'.미제출 }
+        )
+    )
+);
+Clear(colSaSelected);
+ClearCollect(
+    colSaDetail,
+    Filter(
+        fnc_stocktake_detail,
+        실사헤더.실사연도 = Text(Year(Today()))
+    )
+);
+ClearCollect(
+    colSaList,
+    Filter(
+        ForAll(
+            Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료) As A,
+            With(
+                {wD: LookUp(colSaDetail, 자산.자산코드 = A.자산코드)},
+                {자산: A, 보유여부: wD.보유여부, 처리방안: wD.총무처리결과}
+            )
+        ),
+        자산.자산상태 <> [@자산상태].손망실 || 처리방안 = '총무처리결과 (fnc_stocktake_detail)'.폐기처리
+    )
+)
+;
+Notify("재확인을 요청했습니다 — 해당 부서가 다시 제출해야 합니다", NotificationType.Success)
+
+// ── btnSaSelfRecheck.OnSelect  (총무팀 재확인: 보유 + 총무확인)
+ForAll(
+    Distinct(colSaSelected, 자산.자산보유부서) As D,
+    If(
+        !IsBlank(D.Value)
+            && IsBlank(
+                LookUp(
+                    fnc_stocktake,
+                    부서 = D.Value && 실사연도 = Text(Year(Today()))
+                )
+            ),
+        Patch(
+            fnc_stocktake,
+            Defaults(fnc_stocktake),
+            {
+                실사명: "[" & D.Value & "] 자산실사 " & Text(Year(Today())) & "년",
+                부서: D.Value,
+                실사연도: Text(Year(Today())),
+                제출상태: '제출상태 (fnc_stocktake)'.미제출
+            }
+        )
+    )
+);
+ForAll(
+    colSaSelected As S,
+    If(
+        IsBlank(
+            LookUp(
+                fnc_stocktake_detail,
+                실사헤더.실사연도 = Text(Year(Today())) && 자산.자산코드 = S.자산.자산코드
+            )
+        ),
+        Patch(
+            fnc_stocktake_detail,
+            Defaults(fnc_stocktake_detail),
+            {
+                실사헤더: LookUp(
+                    fnc_stocktake,
+                    부서 = S.자산.자산보유부서 && 실사연도 = Text(Year(Today()))
+                ),
+                자산: S.자산,
+                스캔자산코드: S.자산.자산코드,
+                보유여부: '보유여부 (fnc_stocktake_detail)'.보유,
+                    총무처리결과: '총무처리결과 (fnc_stocktake_detail)'.총무확인
+            }
+        ),
+        Patch(
+            fnc_stocktake_detail,
+            LookUp(
+                fnc_stocktake_detail,
+                실사헤더.실사연도 = Text(Year(Today())) && 자산.자산코드 = S.자산.자산코드
+            ),
+            { 보유여부: '보유여부 (fnc_stocktake_detail)'.보유, 총무처리결과: '총무처리결과 (fnc_stocktake_detail)'.총무확인 }
+        )
+    )
+);
+Clear(colSaSelected);
+ClearCollect(
+    colSaDetail,
+    Filter(
+        fnc_stocktake_detail,
+        실사헤더.실사연도 = Text(Year(Today()))
+    )
+);
+ClearCollect(
+    colSaList,
+    Filter(
+        ForAll(
+            Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료) As A,
+            With(
+                {wD: LookUp(colSaDetail, 자산.자산코드 = A.자산코드)},
+                {자산: A, 보유여부: wD.보유여부, 처리방안: wD.총무처리결과}
+            )
+        ),
+        자산.자산상태 <> [@자산상태].손망실 || 처리방안 = '총무처리결과 (fnc_stocktake_detail)'.폐기처리
+    )
+)
+;
+Notify("총무팀 재확인으로 처리했습니다", NotificationType.Success)
+
+// ── btnSaConfirmYes.OnSelect  (손망실 확인: 자산상태 손망실 + 처리방안 폐기처리)
+ForAll(
+    colSaSelected As S,
+    Patch(
+        fnc_asset,
+        S.자산,
+        { 자산상태: [@자산상태].손망실 }
+    )
+        ;
+        With(
+            {wD: LookUp(fnc_stocktake_detail, 실사헤더.실사연도 = Text(Year(Today())) && 자산.자산코드 = S.자산.자산코드)},
+            If(Not(IsBlank(wD)), Patch(fnc_stocktake_detail, wD, {총무처리결과: '총무처리결과 (fnc_stocktake_detail)'.폐기처리}))
+        )
+);
+Clear(colSaSelected);
+Set(gblSaShowWriteOffConfirm, false);
+ClearCollect(
+    colSaDetail,
+    Filter(
+        fnc_stocktake_detail,
+        실사헤더.실사연도 = Text(Year(Today()))
+    )
+);
+ClearCollect(
+    colSaList,
+    Filter(
+        ForAll(
+            Filter(fnc_asset, 자산상태 <> [@자산상태].파기완료) As A,
+            With(
+                {wD: LookUp(colSaDetail, 자산.자산코드 = A.자산코드)},
+                {자산: A, 보유여부: wD.보유여부, 처리방안: wD.총무처리결과}
+            )
+        ),
+        자산.자산상태 <> [@자산상태].손망실 || 처리방안 = '총무처리결과 (fnc_stocktake_detail)'.폐기처리
+    )
+)
+;
+UpdateContext({locSaPage: 1});
+Notify("손망실로 처리했습니다", NotificationType.Success)
+
+// ── lblSaKpiOutboundValue.Text  (KPI 4 "처리방안 확정" = 처리방안 있고 재확인요청 아님)
+CountRows(Filter(colSaList, Not(IsBlank(처리방안)) && 처리방안 <> '총무처리결과 (fnc_stocktake_detail)'.재확인요청)) & " 건"
+
+// ── lblSaGalDepr.Text  (목록 열 자산실사결과)
+If(IsBlank(ThisItem.보유여부), "", Text(ThisItem.보유여부))
+
+// ── lblSaGalDepr.Color  (미보유 빨강)
+If(ThisItem.보유여부 = '보유여부 (fnc_stocktake_detail)'.미보유, AppTheme.Color.RiskCritical, AppTheme.Color.TextPrimary)
+
+// ── lblSaGalStatus.Text  (목록 열 자산처리방안 — 보유 & 처리방안 없음 = 완료)
+If(
+    Not(IsBlank(ThisItem.처리방안)) && Not(ThisItem.처리방안 = '총무처리결과 (fnc_stocktake_detail)'.재확인요청 && Not(IsBlank(ThisItem.보유여부))),
+    Text(ThisItem.처리방안),
+    ThisItem.보유여부 = '보유여부 (fnc_stocktake_detail)'.보유,
+    "완료",
+    ""
+)
+
+// ── lblSaGalStatus.Color
+If(ThisItem.처리방안 = '총무처리결과 (fnc_stocktake_detail)'.폐기처리 || ThisItem.처리방안 = '총무처리결과 (fnc_stocktake_detail)'.재확인요청, AppTheme.Color.RiskCritical, AppTheme.Color.TextPrimary)

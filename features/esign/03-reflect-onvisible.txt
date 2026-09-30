@@ -1,0 +1,61 @@
+// scrDisposalApprove.OnVisible 맨 앞 — 전자결재 승인/반려 결과 반영 (게시본 원문)
+//
+// 화면에 들어올 때마다 route를 읽어 업무 레코드에 되돌린다.
+// 판정식은 전자결재 앱 scrApproval의 StatusCalc를 그대로 따랐다:
+//   반려 행 1건 이상 → 반려
+//   route 전체 행 수 == 승인 행 수 → 승인완료
+
+=// 전자결재 승인/반려 결과 반영
+Refresh(approval_master);
+Refresh(approval_route);
+ClearCollect(
+    colDaEsignPending,
+    Filter(
+        fnc_assetdisposal,
+        신청상태 = '신청상태 (fnc_assetdisposal)'.전자결재상신,
+        Not(IsBlank(전자결재문서번호))
+    )
+);
+ForAll(
+    colDaEsignPending As DP,
+    With(
+        {
+            wAll: CountRows(Filter(approval_route, 'approval master id' = DP.전자결재문서번호)),
+            wOk: CountRows(Filter(approval_route, 'approval master id' = DP.전자결재문서번호, 결재상태 = status.승인)),
+            wNo: CountRows(Filter(approval_route, 'approval master id' = DP.전자결재문서번호, 결재상태 = status.반려))
+        },
+        If(
+            wNo > 0,
+            Patch(fnc_assetdisposal, DP, {신청상태: '신청상태 (fnc_assetdisposal)'.신청}),
+            wAll > 0 && wAll = wOk,
+            Patch(
+                fnc_assetdisposal,
+                DP,
+                {
+                    신청상태: '신청상태 (fnc_assetdisposal)'.승인,
+                    승인자: LookUp(approval_route, 'approval master id' = DP.전자결재문서번호 && 결재상태 = status.승인).승인자,
+                    승인일: Today()
+                }
+            );
+            Patch(fnc_asset, DP.자산, {자산상태: [@자산상태].파기완료})
+        )
+    )
+);
+
+
+// ─────────────────────────────────────────────────────────────
+// 왜 Filter를 직접 순회하지 않고 ClearCollect를 먼저 하나
+// ─────────────────────────────────────────────────────────────
+// ForAll 안에서 순회 중인 데이터 원본을 Patch하면 안 된다.
+// 컬렉션으로 옮긴 뒤 그 컬렉션을 돌면서 원본을 고친다.
+//
+// ─────────────────────────────────────────────────────────────
+// 조건 두 개 사이의 빈틈 — 이것 때문에 레코드가 끼인다
+// ─────────────────────────────────────────────────────────────
+// 반영 블록 : 신청상태 = 전자결재상신 AND 문서번호 있음
+// 목록 적재 : 신청상태 = 신청
+//
+// → 신청상태가 `전자결재상신`인데 문서번호가 **비어 있으면 어디에도 안 잡힌다.**
+//   화면에는 0건으로 보이고 데이터는 Dataverse에 멀쩡히 남는다.
+//   문서번호 기록 없이 상태만 바꾸는 코드가 있으면 이 상태가 만들어진다.
+//   되살리려면 신청상태를 `신청`으로 되돌린다.

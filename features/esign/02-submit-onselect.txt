@@ -1,0 +1,64 @@
+// btnDaEsignSubmit.OnSelect — 자산파기 전자결재 상신 (게시본 원문)
+//
+// 순서가 중요하다:
+//   master Patch → route Patch → 업무 레코드에 문서번호 기록 → 플로우 호출 → 기존 엔진 실행 → 팝업 닫기
+//
+// 문서번호 기록을 Select(btnDaEsignRun) **앞**에 둔다.
+// 뒤에 두면 엔진 안의 Clear(colDaSelected)로 선택이 날아가 대상을 못 찾는다.
+
+=If(IsBlank(cmbDaEsignApprover.Selected), Notify("결재자를 선택하세요.", NotificationType.Warning), Set(gblDaEsignDoc, Patch(approval_master, Defaults(approval_master), {기안제목: "자산파기 승인 요청", 기안유형: 기안유형.자산관리, 기안일자: Today(), 현재결재상태: "결재대기"})); Patch(approval_route, Defaults(approval_route), {'approval master id': gblDaEsignDoc.'doc no', 결재순번: 1, 결재상태: status.진행중, 승인자: cmbDaEsignApprover.Selected, 역할: "승인자"}); ForAll(Filter(galDaAssetList.AllItems, chkDaSelect.Checked, 잔존연수 > 0) As G, Patch(fnc_assetdisposal, G.신청, {전자결재문서번호: gblDaEsignDoc.'doc no'})); '자산관리_자산파기승인'.Run(gblDaEsignDoc.approval_master, gblCurrentUser.사용자); Select(btnDaEsignRun); Set(gblDaEsignOpen, false))
+
+
+// ─────────────────────────────────────────────────────────────
+// 읽기 좋게 편 것 (붙여넣을 때는 위의 한 줄을 쓴다)
+// ─────────────────────────────────────────────────────────────
+=If(
+    IsBlank(cmbDaEsignApprover.Selected),
+    Notify("결재자를 선택하세요.", NotificationType.Warning),
+
+    // 1. 기안 1건 생성. 자산이 여러 건이어도 기안은 하나로 묶는다
+    Set(gblDaEsignDoc,
+        Patch(approval_master, Defaults(approval_master), {
+            기안제목: "자산파기 승인 요청",
+            기안유형: 기안유형.자산관리,
+            기안일자: Today(),
+            현재결재상태: "결재대기"
+        })
+    );
+
+    // 2. 결재선 1단계. 전자결재 앱 표준을 따라 1단계는 진행중으로 만든다
+    Patch(approval_route, Defaults(approval_route), {
+        'approval master id': gblDaEsignDoc.'doc no',
+        결재순번: 1,
+        결재상태: status.진행중,
+        승인자: cmbDaEsignApprover.Selected,
+        역할: "승인자"
+    });
+
+    // 3. 업무 레코드에 문서번호를 박아 기안과 잇는다 (반드시 엔진 실행 앞)
+    ForAll(
+        Filter(galDaAssetList.AllItems, chkDaSelect.Checked, 잔존연수 > 0) As G,
+        Patch(fnc_assetdisposal, G.신청, {전자결재문서번호: gblDaEsignDoc.'doc no'})
+    );
+
+    // 4. 승인 플로우 호출. 이게 있어야 Teams 승인 카드가 나간다
+    '자산관리_자산파기승인'.Run(gblDaEsignDoc.approval_master, gblCurrentUser.사용자);
+
+    // 5. 기존 목록-갱신 로직 재사용 (숨긴 버튼을 엔진으로 실행)
+    Select(btnDaEsignRun);
+
+    Set(gblDaEsignOpen, false)
+)
+
+
+// ─────────────────────────────────────────────────────────────
+// 인자 이름 주의
+// ─────────────────────────────────────────────────────────────
+// .Run()의 인자는 논리명이 아니라 **기본 키 열의 표시 이름**이다.
+//   tsk_approval_masterid → approval_master
+//   systemuserid          → 사용자
+// msapp의 References\DataSources.json → NativeCDSDataSourceInfoNameMapping 에서 확인한다.
+// Studio 인텔리센스보다 이 방법이 빠르다.
+//
+// 흐름 식별자는 앱에 붙일 때 **공백이 빠진다**: `자산관리_자산파기 승인` → '자산관리_자산파기승인'
+// 데이터 원본 `'사용자 '`는 **이름 끝에 공백이 있다**. 열 이름에는 없다.
