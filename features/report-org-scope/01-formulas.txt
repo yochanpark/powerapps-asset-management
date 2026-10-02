@@ -95,7 +95,7 @@ ClearCollect(
                     wPassed: If(
                         IsBlank(A.자산취득일),
                         -1,
-                        RoundDown(DateDiff(A.자산취득일, Today(), TimeUnit.Months) / 12, 0)
+                        (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(A.자산취득일) - If(Month(A.자산취득일) < 4, 1, 0))
                     )
                 },
                 If(

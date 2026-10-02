@@ -126,10 +126,10 @@ Power Fx에는 문자→코드 함수가 없어 `Find(문자, 문자표) - 1`로
 | 바코드 | [`barcode-label-print`](features/barcode-label-print/README.md) · [`barcode-home-button`](features/barcode-home-button/README.md) |
 | 출고 | [`asset-out-receive-dept`](features/asset-out-receive-dept/README.md) |
 | 재고실사 | [`stocktake-dept-csv`](features/stocktake-dept-csv/README.md) · [`stocktake-admin-org-panel`](features/stocktake-admin-org-panel/README.md) |
-| 파기·결재 | [`disposal-search-panel`](features/disposal-search-panel/README.md) · [`disposal-approve-paging`](features/disposal-approve-paging/README.md) · [`esign`](features/esign/README.md) |
+| 파기·결재 | [`disposal-search-panel`](features/disposal-search-panel/README.md) · [`disposal-approve-paging`](features/disposal-approve-paging/README.md) · [`esign`](features/esign/README.md) · [`depreciation-fiscal-year`](features/depreciation-fiscal-year/README.md) |
 | 통계·조직 | [`report-org-scope`](features/report-org-scope/README.md) · [`org-dept-data-alignment`](features/org-dept-data-alignment/README.md) · [`header-nav`](features/header-nav/README.md) |
 | 재사용 키트 | [`csv-upload`](features/csv-upload/README.md) · [`excel-export`](features/excel-export/README.md) |
-| 전자결재 앱 (별도 앱) | [`esign-app-mobile`](features/esign-app-mobile/README.md) · [`esign-approval-line`](features/esign-approval-line/README.md) · [`search-date-range`](features/search-date-range/README.md) · [`draft-date-on-submit`](features/draft-date-on-submit/README.md) |
+| 전자결재 앱 (별도 앱) | [`esign-app-mobile`](features/esign-app-mobile/README.md) · [`esign-approval-line`](features/esign-approval-line/README.md) · [`search-date-range`](features/search-date-range/README.md) · [`draft-date-on-submit`](features/draft-date-on-submit/README.md) · [`esign-approval-card`](features/esign-approval-card/README.md) · [`esign-leave-weekdays`](features/esign-leave-weekdays/README.md) · [`esign-integration-test`](features/esign-integration-test/README.md) |
 
 앱 소스 전체(`*.pa.yaml`)는 Studio가 만드는 덤프이고 환경 정보가 섞여 있어 올리지 않았다.
 여기 있는 것은 **직접 만든 부분만 게시본에서 떼어낸 것**이다.

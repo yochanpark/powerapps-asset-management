@@ -1,0 +1,52 @@
+// 승인 카드 링크(?docNo=doc-###)로 열면 그 기안 상세를 바로 연다
+// 2026-10-01 게시본(pac canvas download로 확인). 바뀐 곳은 아래 두 속성뿐이다.
+
+==============================================================================
+① App.StartScreen   (전에는 비어 있었다 = 첫 화면 scrApproval)
+==============================================================================
+If(Not(IsBlank(Param("docNo"))), scrElectronicApproval, scrApproval)
+
+
+==============================================================================
+② scrElectronicApproval.OnVisible — 앞부분만 (뒤는 그대로)
+   ctxSelectedApproval 대신 locOpenDocNo를 기준으로 신규/상세를 가른다
+==============================================================================
+UpdateContext({gblShowPopup: false});
+// 목록에서 열면 그 기안, 승인 카드 링크(?docNo=doc-###)로 처음 열면 그 기안
+UpdateContext({
+    locOpenDocNo: If(
+        IsBlank(ctxSelectedApproval) && Not(IsBlank(Param("docNo"))) && Not(gblDocNoParamUsed),
+        LookUp(approval_master, 'doc no' = Param("docNo"), 'doc no'),
+        ctxSelectedApproval.'doc no'
+    )
+});
+If(Not(IsBlank(Param("docNo"))), Set(gblDocNoParamUsed, true));
+UpdateContext({locIsNewMode: IsBlank(locOpenDocNo)});
+UpdateContext({locSubmitMode: ""});
+UpdateContext({locShowSubmitConfirm: false});
+UpdateContext({locShowDeleteConfirm: false});
+
+Set(
+    varApprovalDetail,
+    If(
+        IsBlank(locOpenDocNo),
+        Blank(),
+        LookUp(approval_master, 'doc no' = locOpenDocNo)
+    )
+);
+// … 이하 결재라인 복원·ResetForm 등은 바꾸지 않았다
+
+
+// 바꾸기 전
+// UpdateContext({locIsNewMode: IsBlank(ctxSelectedApproval)});
+// …
+// Set(varApprovalDetail, If(IsBlank(ctxSelectedApproval), Blank(),
+//     LookUp(approval_master, 'doc no' = ctxSelectedApproval.'doc no')));
+
+
+==============================================================================
+✗ 안 되는 방법 — 시작 화면 OnVisible에서 Navigate
+==============================================================================
+// scrApproval.OnVisible 끝에 조건부 Navigate(scrElectronicApproval, …)를 붙이면
+// 앱 검사기 오류: "이 화면을 항상 자동으로 벗어나므로 여기에서 탐색을 사용할 수 없습니다"
+// → StartScreen으로 첫 화면 자체를 바꾼다

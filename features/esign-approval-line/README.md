@@ -258,3 +258,30 @@ Switch(ThisItem.Role,
 - 사이드바의 `Status`/`Current`는 여전히 **`Sequence = 1`을 진행 중으로 가정**한다.
   상신된 기안에서도 1번이 늘 노란색/녹색으로 보인다. 실제 진행 상태를 그리려면
   `approval_route.결재상태`를 같이 읽어야 한다
+
+---
+
+## ⑤ 팝업 취소가 되돌리지 않던 것 (2026-10-01, 게시 완료)
+
+9/28에 결재라인 지정 팝업을 `conAlp*`(데스크톱 3단 / 폰 탭 2개)로 새로 만들었다.
+10/1 통합 테스트([`../esign-integration-test/`](../esign-integration-test/))에서 두 가지가 걸렸다.
+
+| 증상 | 원인 |
+|---|---|
+| 사람을 넣고 `취소`해도 결재라인에 남는다 | 역할 버튼·X 삭제가 `colApprovalLine`을 **바로** 고친다. `취소`/X는 `gblShowPopup: false`만 했다 |
+| 새 기안에서 팝업을 열면 이전 검색어·부서 선택이 남아 있다 | `txtAlpSearch`, `locAlpDeptName/TeamName`, `locAlpTab`이 같은 화면의 컨텍스트 변수라 화면을 떠나지 않으면 유지된다 |
+
+**고친 곳 3개** — 수식은 `01-formulas.txt` ⑤.
+
+| 컨트롤 | 바꾼 것 |
+|---|---|
+| `btnApprovalLine.OnSelect` | 열기 전에 `colAlpBackup`으로 복사, 검색어·부서·팀·탭 초기화 |
+| `btnAlpCancel.OnSelect` | `colAlpBackup`으로 되돌린 뒤 닫기 |
+| `btnAlpClose.OnSelect` (X) | 취소와 같은 식 |
+
+- 팝업을 여는 곳은 `btnApprovalLine` 하나뿐이다(`gblShowPopup: true` 검색으로 확인)
+- `저장`은 그대로 둔다 — 닫는 순간 이미 반영된 상태다
+- 컬렉션 스키마(`Sequence/ID/Name/DeptName/Role`)가 같아서 `ClearCollect`로 통째로 되돌리면 된다
+
+**확인 (Studio 미리보기, iPhone 12):** 사람 추가 → `취소` → "결재라인을 지정해 주세요." 복귀 ✅ /
+저장한 1명 + 1명 추가(결재선 2) → X → 1명으로 복귀 ✅ / 다시 열면 검색어 빈칸·부서 선택 해제·결재선 탭 (n) 정상 ✅

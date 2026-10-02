@@ -1,0 +1,25 @@
+// 사용연차 카드 입력칸(DataCardValue11).Default — 월~금만 센다
+// DataCardValue12 = 반차여부, DateValue3/4 = 휴가시작일/종료일
+// 2026-10-01 게시본(pac canvas download로 확인)
+If(
+    Text(DataCardValue12.Selected.Value) = "예",
+    0.5,
+    If(
+        !IsBlank(DateValue3.SelectedDate) && !IsBlank(DateValue4.SelectedDate),
+        CountRows(
+            Filter(
+                ForAll(
+                    Sequence(Max(0, DateDiff(DateValue3.SelectedDate, DateValue4.SelectedDate, TimeUnit.Days) + 1), 0),
+                    DateAdd(DateValue3.SelectedDate, Value, TimeUnit.Days)
+                ),
+                Weekday(Value, StartOfWeek.Monday) <= 5
+            )
+        ),
+        0
+    )
+)
+
+// 바꾸기 전 (주말 포함 달력일)
+// If(Text(DataCardValue12.Selected.Value) = "예", 0.5,
+//    If(!IsBlank(DateValue3.SelectedDate) && !IsBlank(DateValue4.SelectedDate),
+//       DateDiff(DateValue3.SelectedDate, DateValue4.SelectedDate, TimeUnit.Days) + 1, 0))

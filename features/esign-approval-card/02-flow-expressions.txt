@@ -1,0 +1,43 @@
+// 승인 카드를 보내는 Power Automate 흐름 쪽 변경 (2026-10-01, 전부 저장·실검증)
+
+==============================================================================
+① 트리거 행 필터 — 임시저장 → 상신 때 카드가 여러 장 나가던 것
+   기안번호(cr5f6_draft_no)는 이 앱이 '상신' 때만 채운다.
+   "기안번호가 비어 있을 때만" 조건을 붙이면 상신 이벤트에서는 발화하지 않는다.
+==============================================================================
+
+// 원본 흐름  "[승인] approval_master Dataverse에 결재상신 시 승인 요청하기"   (트리거: 업데이트)
+tsk_doc_type ne 4 and tsk_doc_type ne 3 and tsk_doc_type ne 5 and cr5f6_draft_no eq null
+
+// 휴가 테스트 흐름  "…결재상신 시 승인 요청하기_tsk_doc_type eq 0 (휴가) Test"   (트리거: 만들기 또는 업데이트, {ADMIN_ACCOUNT} 계정 소유)
+tsk_doc_type eq 0 and cr5f6_draft_no eq null
+
+// 전용 흐름  "[승인] approval_master Dataverse에 전자결재 앱 상신 시 승인 요청하기"   (바꾸지 않음)
+tsk_doc_type ne 4 and tsk_doc_type ne 3 and tsk_doc_type ne 5 and cr5f6_temporary_save_status eq false
+
+
+==============================================================================
+② 전용 흐름  Create an approval (V2) 1 › 세부 정보(details) — 휴가 날짜 두 곳만
+==============================================================================
+
+// 바꾼 뒤
+'- 휴가시작일: ', formatDateTime(addDays(triggerOutputs()?['body/cr5f6_start_date'], 1), 'yyyy-MM-dd'),
+'- 휴가종료일: ', formatDateTime(addDays(triggerOutputs()?['body/cr5f6_end_date'], 1), 'yyyy-MM-dd'),
+
+// 바꾸기 전
+'- 휴가시작일: ', formatDateTime(triggerOutputs()?['body/cr5f6_start_date'], 'yyyy-MM-dd'),
+'- 휴가종료일: ', formatDateTime(triggerOutputs()?['body/cr5f6_end_date'], 'yyyy-MM-dd'),
+
+// 그대로 둔 것 — 시간대 영향 없는 열
+'- 기안일자: ', formatDateTime(triggerOutputs()?['body/tsk_draft_date'], 'yyyy-MM-dd'),
+'- 결재기한: ', formatDateTime(triggerOutputs()?['body/tsk_due_date'], 'yyyy-MM-dd')
+// 메일 3종(결재요청·완료·반려)의 기안일자도 그대로. 메일에는 휴가 날짜가 없다.
+
+
+==============================================================================
+✗ 실패한 식 — 쓰지 말 것
+==============================================================================
+convertFromUtc(triggerOutputs()?['body/cr5f6_start_date'], 'Korea Standard Time', 'yyyy-MM-dd')
+// InvalidTemplate: "convertFromUtc expects its first parameter to be a string that contains a UTC date time.
+//                   The value was '2026-10-11T00:00:00.0000000'"
+// 커넥터가 시간을 잘라 Z 없이 넘기므로 UTC 변환 함수가 받지 않는다. 기안일자에 쓰면 흐름 전체가 멈춘다.

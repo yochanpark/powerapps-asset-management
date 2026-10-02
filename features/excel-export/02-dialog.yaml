@@ -5,7 +5,7 @@
       BorderColor: =AppTheme.Dialog.Info.Border
       BorderThickness: =1
       Fill: =AppTheme.Color.ContentBg
-      Height: =228
+      Height: =If(App.Width < 768, 300, 228)
       LayoutAlignItems: =LayoutAlignItems.Center
       LayoutDirection: =LayoutDirection.Vertical
       LayoutGap: =12
@@ -14,14 +14,15 @@
       PaddingRight: =24
       PaddingTop: =24
       Visible: =gblExportDone
-      Width: =480
-      X: =Parent.Width / 2 - 240
+      Width: =Min(480, Parent.Width - 32)
+      X: =Max(16, (Parent.Width - 480) / 2)
       Y: =Parent.Height / 2 - Self.Height / 2
     Children:
       - lbl{{PFX}}ExportTitle:
           Control: ModernText@1.0.0
           Properties:
             Align: =Align.Center
+            FontWeight: =FontWeight.Semibold
             LayoutMinHeight: =16
             LayoutMinWidth: =16
             Size: =16
@@ -47,16 +48,16 @@
           Control: GroupContainer@1.5.0
           Variant: AutoLayout
           Properties:
+            DropShadow: =DropShadow.None
+            Height: =32
             LayoutAlignItems: =LayoutAlignItems.Center
             LayoutDirection: =LayoutDirection.Horizontal
             LayoutGap: =8
             LayoutJustifyContent: =LayoutJustifyContent.Center
             LayoutMinHeight: =16
             LayoutMinWidth: =16
-            PaddingBottom: =8
             PaddingLeft: =8
             PaddingRight: =8
-            PaddingTop: =8
           Children:
             - btn{{PFX}}ExportFolder:
                 Control: ModernButton@1.0.0

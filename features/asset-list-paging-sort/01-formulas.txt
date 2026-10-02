@@ -77,7 +77,7 @@ If(
                             wTotal - If(
                                 IsBlank(자산취득일),
                                 0,
-                                RoundDown(DateDiff(자산취득일, Today(), TimeUnit.Months) / 12, 0)
+                                (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(자산취득일) - If(Month(자산취득일) < 4, 1, 0))
                             )
                         ) / wTotal
                     )
@@ -91,7 +91,7 @@ If(
                             wTotal - If(
                                 IsBlank(자산취득일),
                                 0,
-                                RoundDown(DateDiff(자산취득일, Today(), TimeUnit.Months) / 12, 0)
+                                (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(자산취득일) - If(Month(자산취득일) < 4, 1, 0))
                             )
                         ) / wTotal
                     )

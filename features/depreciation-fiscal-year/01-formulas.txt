@@ -1,0 +1,126 @@
+// 잔존감가 경과 연수 = 4/1 회계연도 기준, 영구 = 99년 (잔존금액 = 취득가액)
+// 2026-09-30 게시본에서 pac로 받아 옮긴 원문 (발췌)
+
+// ── 공통 식: 경과 연수(4/1 회계연도 차이)
+(Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(취득일) - If(Month(취득일) < 4, 1, 0))
+// 옛 식(교체됨): RoundDown(DateDiff(취득일, Today(), TimeUnit.Months) / 12, 0)
+
+// ── scrAsset.btnSearch.OnSelect  잔존감가(이상)/(이하) 필터 부분
+//    scrAssetOut.btnSearch_2 / scrBarcodePrint.btnSearch_1 도 같은 식 (입력칸 이름만 _2 / _1)
+With(
+    {
+        wTotal: Switch(
+            감가상각기간,
+            [@감가상각기간].'1년', 1,
+            [@감가상각기간].'3년', 3,
+            [@감가상각기간].'5년', 5,
+            [@감가상각기간].'10년', 10,
+            0
+        )
+    },
+    (IsBlank(txtRemainFrom.Text) ||
+        If(
+            wTotal <= 0,
+            Coalesce(취득가액, 0),
+            Coalesce(취득가액, 0) * Max(
+                0,
+                wTotal - If(
+                    IsBlank(자산취득일),
+                    0,
+                    (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(자산취득일) - If(Month(자산취득일) < 4, 1, 0))
+                )
+            ) / wTotal
+        )
+        >= Value(txtRemainFrom.Text)) &&
+    (IsBlank(txtRemainTo.Text) ||
+        If(
+            wTotal <= 0,
+            Coalesce(취득가액, 0),
+            Coalesce(취득가액, 0) * Max(
+                0,
+                wTotal - If(
+                    IsBlank(자산취득일),
+                    0,
+                    (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(자산취득일) - If(Month(자산취득일) < 4, 1, 0))
+                )
+            ) / wTotal
+        )
+        <= Value(txtRemainTo.Text))
+)
+
+// ── scrReport.btnRpApply.OnSelect  감가상각 집계의 연상각 필드
+연상각: With(
+    {
+        wT: Switch(
+            A.감가상각기간,
+            [@감가상각기간].'1년', 1,
+            [@감가상각기간].'3년', 3,
+            [@감가상각기간].'5년', 5,
+            [@감가상각기간].'10년', 10,
+            0
+        ),
+        wPassed: If(
+            IsBlank(A.자산취득일),
+            -1,
+            (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(A.자산취득일) - If(Month(A.자산취득일) < 4, 1, 0))
+        )
+    },
+    If(
+        wT <= 0
+            || wPassed < 0
+            || wPassed >= wT
+            || A.자산상태 = [@자산상태].파기완료
+            || A.자산상태 = [@자산상태].손망실,
+        0,
+        Coalesce(A.취득가액, 0) / wT
+    )
+)
+
+// ── scrStockTakeDept.lblSdGalDepr.Text  (목록 '잔존감가상각(년)' 열, 영구는 "영구")
+=If(
+    ThisItem.자산.감가상각기간 = [@감가상각기간].영구,
+    "영구",
+    Max(
+        0,
+        Switch(
+            ThisItem.자산.감가상각기간,
+            [@감가상각기간].'1년', 1,
+            [@감가상각기간].'3년', 3,
+            [@감가상각기간].'5년', 5,
+            [@감가상각기간].'10년', 10,
+            0
+        ) - If(
+            IsBlank(ThisItem.자산.자산취득일),
+            0,
+            (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(ThisItem.자산.자산취득일) - If(Month(ThisItem.자산.자산취득일) < 4, 1, 0))
+        )
+    ) & "년"
+)
+
+// ── scrStockTakeDept.lblSdGalDisposal.Text  (파기 대상 열, 영구는 "비대상")
+=If(
+    IsBlank(ThisItem.자산.자산취득일),
+    "",
+    ThisItem.자산.감가상각기간 = [@감가상각기간].영구,
+    "비대상",
+    Max(
+        0,
+        Switch(
+            ThisItem.자산.감가상각기간,
+            [@감가상각기간].'1년', 1,
+            [@감가상각기간].'3년', 3,
+            [@감가상각기간].'5년', 5,
+            [@감가상각기간].'10년', 10,
+            0
+        ) - ((Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(ThisItem.자산.자산취득일) - If(Month(ThisItem.자산.자산취득일) < 4, 1, 0)))
+    ) <= 0,
+    "대상",
+    "비대상"
+)
+
+// ── scrHome.OnVisible  colKpiAsset.잔존가액 (현재 자산가치 KPI, 취득일 없으면 경과 0)
+잔존가액:
+    If(감가연수 = 99,
+        취득가액,
+        Round(취득가액 * Max(0, 감가연수 - If(IsBlank(취득일), 0, (Year(Today()) - If(Month(Today()) < 4, 1, 0)) - (Year(취득일) - If(Month(취득일) < 4, 1, 0)))) / 감가연수, 0)
+    ),

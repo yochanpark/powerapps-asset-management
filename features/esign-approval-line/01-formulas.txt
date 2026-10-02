@@ -112,3 +112,20 @@ OnVisible 에 "Sequence: 1," 이 두 군데 있다. 신규 모드의 고정 결�
 
 1/1 로 뜨는 것을 확인하고 단일 바꾸기 버튼. $1 로 들여쓰기가 보존된다.
 패턴에 \n 을 넣어야 여러 줄 검색이 켜진다.
+
+
+==============================================================================
+⑤ 결재라인 팝업 — 취소·X 되돌림 + 열 때 초기화 (2026-10-01 게시본)
+   팝업(conAlp*)은 colApprovalLine을 직접 고친다. 그래서 열 때 복사본을 떠 둔다.
+==============================================================================
+
+// btnApprovalLine.OnSelect  (기안 화면의 [결재라인] 버튼)
+ClearCollect(colAlpBackup, colApprovalLine);
+Reset(txtAlpSearch);
+UpdateContext({locAlpDeptName: Blank(), locAlpTeamName: Blank(), locAlpTab: "pick", gblShowPopup: true})
+
+// btnAlpCancel.OnSelect  /  btnAlpClose.OnSelect  (취소 버튼, 오른쪽 위 X — 같은 식)
+ClearCollect(colApprovalLine, colAlpBackup);
+UpdateContext({gblShowPopup: false})
+
+// btnAlpSave.OnSelect 는 그대로 (닫기만 하면 colApprovalLine 이 이미 반영돼 있다)
